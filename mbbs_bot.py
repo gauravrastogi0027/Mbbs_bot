@@ -97,13 +97,14 @@ class Database:
 # Initialize database
 db = Database()
 
-# Initialize bot with FIX for Render time sync
+# Initialize bot with FIXED client for Render
 app = Client(
-    "mbbs_bot_final_fixed", 
-    api_id=API_ID, 
-    api_hash=API_HASH, 
+    "mbbs_bot_session",
+    api_id=API_ID,
+    api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    in_memory=True
+    in_memory=True,
+    sleep_threshold=120
 )
 
 # Auto caption function
