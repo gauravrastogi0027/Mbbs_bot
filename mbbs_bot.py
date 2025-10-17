@@ -97,8 +97,14 @@ class Database:
 # Initialize database
 db = Database()
 
-# Initialize bot with fresh session
-app = Client("mbbs_bot_final_fixed", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# Initialize bot with FIX for Render time sync
+app = Client(
+    "mbbs_bot_final_fixed", 
+    api_id=API_ID, 
+    api_hash=API_HASH, 
+    bot_token=BOT_TOKEN,
+    in_memory=True
+)
 
 # Auto caption function
 def add_caption(filename=""):
@@ -445,7 +451,6 @@ Enjoy your learning journey with us! ✨"""
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
-
 # Send screenshot command - FIXED: Blocking check
 @app.on_message(filters.command("send_screenshot"))
 async def screenshot_command(client, message: Message):
@@ -538,6 +543,7 @@ async def myplan_command(client, message: Message):
 👉 Use `/premium_user` to upgrade now!"""
     
     await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
+
 # NEW Block User command - FIXED: Proper blocking
 @app.on_message(filters.command("block_user"))
 async def block_user_command(client, message: Message):
@@ -669,7 +675,6 @@ async def blocked_user_list_command(client, message: Message):
         blocked_text += f"\n📋 Showing 50 out of {len(blocked_users)} blocked users"
     
     await message.reply_text(blocked_text, parse_mode=ParseMode.MARKDOWN)
-
 # Get username command - FIXED: Blocking check
 @app.on_message(filters.command("get_username"))
 async def username_command(client, message: Message):
@@ -795,6 +800,7 @@ async def remove_via_file_id_command(client, message: Message):
             "💡 Use `/get_file_ids` to get file IDs",
             parse_mode=ParseMode.MARKDOWN
         )
+
 # IMPROVED Clear Database command - FIXED: All buttons working properly
 @app.on_message(filters.command("clear_database"))
 async def clear_database_command(client, message: Message):
@@ -859,7 +865,6 @@ async def clear_subject_command(client, message: Message):
         "First, select the type of content you want to clear:",
         reply_markup=keyboard
     )
-
 # TRANSFER command - FIXED: Premium stays until removed
 @app.on_message(filters.command("transfer"))
 async def transfer_command(client, message: Message):
@@ -1016,6 +1021,7 @@ async def stats_command(client, message: Message):
 🎯 Admin: @Sush11112222"""
     
     await message.reply_text(stats_text)
+
 # IMPROVED USER INFO COMMAND - FIXED: Shows all users list
 @app.on_message(filters.command("user_info"))
 async def user_info_command(client, message: Message):
@@ -1115,7 +1121,6 @@ async def broadcast_command(client, message: Message):
         await broadcast_msg.edit_text(f"✅ Broadcast Complete!\n\n✅ Success: {success}\n❌ Failed: {failed}")
     else:
         await message.reply_text("Usage: /broadcast <message>")
-
 # IMPROVED File handling for admin - FIXED: Working properly
 @app.on_message(filters.user(ADMIN_ID) & (filters.video | filters.document | filters.audio | filters.photo))
 async def handle_files(client, message: Message):
@@ -1253,6 +1258,7 @@ def create_premium_content_keyboard(callback_prefix, content_type):
         keyboard.append(row)
     
     return InlineKeyboardMarkup(keyboard)
+
 # IMPROVED Callback query handler - FIXED: All callbacks working with blocked user check
 @app.on_callback_query()
 async def handle_callbacks(client, callback_query: CallbackQuery):
@@ -1362,7 +1368,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
         else:
             await callback_query.answer("❌ No files available for this subject yet!", show_alert=True)
         return
-    
     # Handle category selection with 4 options - FIXED
     elif data.startswith("cat_"):
         parts = data.split("_")
@@ -1460,6 +1465,7 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             else:
                 await callback_query.answer("❌ File not found!", show_alert=True)
         return
+    
     # Handle clear subject type selection (Free or Premium) - FIXED
     elif data.startswith("clear_subject_"):
         if not is_admin(user_id):
@@ -1579,7 +1585,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             
             await callback_query.message.edit_text(warning_text, reply_markup=keyboard)
         return
-    
     # Handle clear database category selection - FIXED: All buttons working
     elif data.startswith("clear_db_"):
         if not is_admin(user_id):
@@ -1705,6 +1710,7 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
                 )
                 return
         return
+    
     # Handle final confirmations for clearing - FIXED: All working
     elif data.startswith("confirm_clear_"):
         if not is_admin(user_id):
