@@ -367,46 +367,37 @@ async def books_command(client, message: Message):
         "📚 **Select Subject for Books:**\n\n📊 Numbers show available book counts",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-# Premium user command - FIXED: Blocking check + ATTRACTIVE PAYMENT
+# Premium user command - FIXED: Blocking check + CLICKABLE PAYMENT LINK
 @app.on_message(filters.command("premium_user"))
 async def premium_command(client, message: Message):
     user_id = message.from_user.id
     if await blocked_user_check(user_id, message=message):
         return
     
-    premium_text = """🔥 *🚀 INSTANT MBBS PREMIUM ACCESS - ONLY ₹100! 🚀* 🔥
+    # CLICKABLE PAYMENT LINK
+    payment_link = "https://kuldeepgangwar70.github.io/upi-pay-page-/"
+    
+    premium_text = """🎓 Upgrade to Premium Now!
 
-*Namaste {user.first_name}!* 👨‍⚕️👩‍⚕️
+Unlock exclusive access to all MBBS Video Lectures and Medical Books & Notes 📚✨
 
-*YOUR MBBS SUCCESS JOURNEY STARTS HERE!* 📚🎓
+✅ High-quality MBBS video lectures
+✅ Premium study materials & textbooks
+✅ Exclusive access — only for Premium Members
 
-💎 *PREMIUM CONTENT INCLUDES:*
-• ✅ 1000+ MBBS Books & Notes
-• ✅ 500+ HD Video Lectures  
-• ✅ Anatomy 3D Models
-• ✅ Clinical Case Studies
-• ✅ Previous Year Papers
-• ✅ Practical Videos
-• ✅ 24/7 Expert Support
+💰 Subscription Fee: ₹100 only
+📅 Validity: Lifetime Access
 
-🎯 *ONLY ₹100 - LIFETIME ACCESS!*
-💸 *Normal Price: ₹999* | *🔥 Today: ₹100* 🔥
+To become a Premium User, please make a payment of ₹100 using the payment link below 👇
 
-⚡ *SIMPLE PAYMENT PROCESS:*
-1. Copy UPI ID below
-2. Open your UPI app
-3. Pay ₹100 to the UPI ID
-4. Send screenshot to owner
-5. Get instant access! ✅
+Once payment is done, send a screenshot of your transaction to our support chat to activate your Premium Membership instantly 🔥
 
-💳 *UPI ID for Payment:* 
-`111kuldeep222-4@okicici`
-
-*Amount: ₹100*""".format(user=message.from_user)
+📩 Join Now & Boost Your MBBS Journey!
+Start learning smarter — not harder 💪"""
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📸 Send Screenshot to Owner", url="https://t.me/Sush11112222")],
-        [InlineKeyboardButton("💬 Need Help?", callback_data="payment_help")],
+        [InlineKeyboardButton("💳 Pay ₹100 via Payment Link", url=payment_link)],
+        [InlineKeyboardButton("📸 Send Screenshot", callback_data="send_ss")],
         [InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")]
     ])
     
@@ -423,7 +414,10 @@ async def direct_payment(client, message: Message):
     if await blocked_user_check(user_id, message=message):
         return
     
-    payment_text = """🎯 *🚀 DIRECT PAYMENT - UNLOCK MBBS PREMIUM! 🚀* 🎯
+    # CLICKABLE PAYMENT LINK
+    payment_link = "https://kuldeepgangwar70.github.io/upi-pay-page-/"
+    
+    payment_text = """🎯 *DIRECT PAYMENT - UNLOCK MBBS PREMIUM!* 🎯
 
 *Hello {user.first_name}!* 💫
 
@@ -437,16 +431,16 @@ async def direct_payment(client, message: Message):
 💰 *ONLY ₹100 - LIFETIME ACCESS!*
 
 🚀 *QUICK PAYMENT PROCESS:*
-1. Copy UPI ID: `111kuldeep222-4@okicici`
-2. Open GPay/PhonePe/Paytm
-3. Pay ₹100 to this UPI ID
+1. Click PAY NOW button below
+2. Payment page opens automatically
+3. Pay ₹100 via any UPI app
 4. Send screenshot to owner
 5. Access unlocked! ✅
 
 ⚡ *Get instant premium access within 30 minutes!*""".format(user=message.from_user)
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📱 Contact Owner for Payment", url="https://t.me/Sush11112222")],
+        [InlineKeyboardButton("🚀 PAY ₹100 NOW", url=payment_link)],
         [InlineKeyboardButton("✅ I've Paid - Activate Access", callback_data="payment_done")],
         [InlineKeyboardButton("💬 Payment Help", callback_data="payment_help")],
         [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
@@ -458,12 +452,15 @@ async def direct_payment(client, message: Message):
         parse_mode=ParseMode.MARKDOWN
     )
 
-# UPI ID command - FIXED: Blocking check + ATTRACTIVE MESSAGE
+# UPI ID command - FIXED: Blocking check + CLICKABLE PAYMENT LINK
 @app.on_message(filters.command("upi_id"))
 async def upi_command(client, message: Message):
     user_id = message.from_user.id
     if await blocked_user_check(user_id, message=message):
         return
+    
+    # CLICKABLE PAYMENT LINK
+    payment_link = "https://kuldeepgangwar70.github.io/upi-pay-page-/"
     
     upi_text = """💳 *QUICK PAYMENT - ₹100 ONLY!* 💳
 
@@ -479,21 +476,11 @@ async def upi_command(client, message: Message):
 
 💰 *Special Offer: ₹100 Only!*
 
-💳 *UPI Payment Details:*
-• UPI ID: `111kuldeep222-4@okicici`
-• Amount: ₹100
-• Note: MBBS Premium Access
-
-⚡ *Steps to Pay:*
-1. Copy UPI ID above
-2. Open your UPI app
-3. Paste UPI ID & pay ₹100
-4. Send screenshot to owner
-5. Get instant access!""".format(user=message.from_user)
+⚡ *Click the PAYMENT LINK below to pay instantly:*""".format(user=message.from_user)
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📸 Send Screenshot to Owner", url="https://t.me/Sush11112222")],
-        [InlineKeyboardButton("💬 Need Help?", callback_data="payment_help")],
+        [InlineKeyboardButton("💳 PAY ₹100 NOW", url=payment_link)],
+        [InlineKeyboardButton("📸 Send Screenshot", callback_data="send_ss")],
         [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
     ])
     
@@ -620,16 +607,12 @@ async def myplan_command(client, message: Message):
 🎁 Get unlimited videos + premium books
 ⚡ Instant activation
 
-💳 *UPI ID:* `111kuldeep222-4@okicici`
-*Amount:* ₹100"""
+👉 Use `/premium_user` to upgrade now!"""
         
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("📱 Contact Owner to Upgrade", url="https://t.me/Sush11112222")],
-            [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
-        ])
-        
-        await message.reply_text(plan_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
         return
+    
+    await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
 
 # NEW Block User command - FIXED: Proper blocking
 @app.on_message(filters.command("block_user"))
@@ -1374,9 +1357,9 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
         await client.send_message(
             user_id,
             "💡 *Payment Help* 💡\n\n"
-            "1. Copy UPI ID: `111kuldeep222-4@okicici`\n"
-            "2. Open your UPI app (GPay/PhonePe/Paytm)\n"  
-            "3. Pay ₹100 to the UPI ID\n"
+            "1. Click 'PAY NOW' button\n"
+            "2. Payment page will open\n"
+            "3. Pay ₹100 via any UPI app\n"
             "4. Send screenshot to @Sush11112222\n"
             "5. Get instant premium access!\n\n"
             "Need help? Contact @Sush11112222 immediately!",
@@ -1832,6 +1815,7 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
                 )
                 return
         return
+    
     elif data.startswith("confirm_clear_"):
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
