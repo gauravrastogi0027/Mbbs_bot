@@ -99,7 +99,6 @@ db = Database()
 
 # Initialize bot with fresh session
 app = Client("mbbs_bot_final_fixed", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-
 # Auto caption function
 def add_caption(filename=""):
     caption = f"""🎓 MBBS ARCHIVE 📚
@@ -368,40 +367,138 @@ async def books_command(client, message: Message):
         "📚 **Select Subject for Books:**\n\n📊 Numbers show available book counts",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-# Premium user command - FIXED: Blocking check
+# Premium user command - FIXED: Blocking check + ATTRACTIVE PAYMENT
 @app.on_message(filters.command("premium_user"))
 async def premium_command(client, message: Message):
     user_id = message.from_user.id
     if await blocked_user_check(user_id, message=message):
         return
     
-    premium_text = """🎓 Upgrade to Premium Now!
+    premium_text = """🔥 *🚀 INSTANT MBBS PREMIUM ACCESS - ONLY ₹100! 🚀* 🔥
 
-Unlock exclusive access to all MBBS Video Lectures and Medical Books & Notes 📚✨
+*Namaste {user.first_name}!* 👨‍⚕️👩‍⚕️
 
-✅ High-quality MBBS video lectures
-✅ Premium study materials & textbooks
-✅ Exclusive access — only for Premium Members
+*YOUR MBBS SUCCESS JOURNEY STARTS HERE!* 📚🎓
 
-💰 Subscription Fee: ₹100 only
-📅 Validity: Lifetime Access
+💎 *PREMIUM CONTENT INCLUDES:*
+• ✅ 1000+ MBBS Books & Notes
+• ✅ 500+ HD Video Lectures  
+• ✅ Anatomy 3D Models
+• ✅ Clinical Case Studies
+• ✅ Previous Year Papers
+• ✅ Practical Videos
+• ✅ 24/7 Expert Support
 
-To become a Premium User, please make a payment of ₹100 using the UPI link below 👇
-👉 UPI ID: `111kuldeep222-4@okicici`
+🎯 *ONLY ₹100 - LIFETIME ACCESS!*
+💸 *Normal Price: ₹999* | *🔥 Today: ₹100* 🔥
 
-Once payment is done, send a screenshot of your transaction to our support chat to activate your Premium Membership instantly 🔥
+⚡ *SIMPLE PAYMENT PROCESS:*
+1. Copy UPI ID below
+2. Open your UPI app
+3. Pay ₹100 to the UPI ID
+4. Send screenshot to owner
+5. Get instant access! ✅
 
-📩 Join Now & Boost Your MBBS Journey!
-Start learning smarter — not harder 💪"""
+💳 *UPI ID for Payment:* 
+`111kuldeep222-4@okicici`
+
+*Amount: ₹100*""".format(user=message.from_user)
     
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📸 Send Screenshot", callback_data="send_ss")],
+        [InlineKeyboardButton("📸 Send Screenshot to Owner", url="https://t.me/Sush11112222")],
+        [InlineKeyboardButton("💬 Need Help?", callback_data="payment_help")],
         [InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")]
     ])
     
     await message.reply_text(
         premium_text,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+# NEW DIRECT PAYMENT COMMAND ADDED - SUPER ATTRACTIVE
+@app.on_message(filters.command("direct_payment"))
+async def direct_payment(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
+        return
+    
+    payment_text = """🎯 *🚀 DIRECT PAYMENT - UNLOCK MBBS PREMIUM! 🚀* 🎯
+
+*Hello {user.first_name}!* 💫
+
+⚡ *INSTANT ACCESS TO:*
+• 📚 1000+ MBBS Books & Notes
+• 🎥 500+ HD Video Lectures
+• 🏥 Clinical Case Studies
+• 📝 Previous Year Questions
+• 🔬 Practical Demonstrations
+
+💰 *ONLY ₹100 - LIFETIME ACCESS!*
+
+🚀 *QUICK PAYMENT PROCESS:*
+1. Copy UPI ID: `111kuldeep222-4@okicici`
+2. Open GPay/PhonePe/Paytm
+3. Pay ₹100 to this UPI ID
+4. Send screenshot to owner
+5. Access unlocked! ✅
+
+⚡ *Get instant premium access within 30 minutes!*""".format(user=message.from_user)
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📱 Contact Owner for Payment", url="https://t.me/Sush11112222")],
+        [InlineKeyboardButton("✅ I've Paid - Activate Access", callback_data="payment_done")],
+        [InlineKeyboardButton("💬 Payment Help", callback_data="payment_help")],
+        [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
+    ])
+    
+    await message.reply_text(
+        payment_text,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+# UPI ID command - FIXED: Blocking check + ATTRACTIVE MESSAGE
+@app.on_message(filters.command("upi_id"))
+async def upi_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
+        return
+    
+    upi_text = """💳 *QUICK PAYMENT - ₹100 ONLY!* 💳
+
+*Hello {user.first_name}!* 👋
+
+🚀 *Get MBBS Premium Content Instantly!*
+
+📦 *What You Get:*
+• Unlimited MBBS Videos & Books
+• Lifetime Access
+• Premium Study Materials
+• 24/7 Support
+
+💰 *Special Offer: ₹100 Only!*
+
+💳 *UPI Payment Details:*
+• UPI ID: `111kuldeep222-4@okicici`
+• Amount: ₹100
+• Note: MBBS Premium Access
+
+⚡ *Steps to Pay:*
+1. Copy UPI ID above
+2. Open your UPI app
+3. Paste UPI ID & pay ₹100
+4. Send screenshot to owner
+5. Get instant access!""".format(user=message.from_user)
+    
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📸 Send Screenshot to Owner", url="https://t.me/Sush11112222")],
+        [InlineKeyboardButton("💬 Need Help?", callback_data="payment_help")],
+        [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
+    ])
+    
+    await message.reply_text(
+        upi_text,
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
@@ -469,19 +566,6 @@ Stay tuned for exclusive medical learning content! 🩺🎓"""
         reply_markup=get_owner_button(),
         parse_mode=ParseMode.MARKDOWN
     )
-
-# UPI ID command - FIXED: Blocking check
-@app.on_message(filters.command("upi_id"))
-async def upi_command(client, message: Message):
-    user_id = message.from_user.id
-    if await blocked_user_check(user_id, message=message):
-        return
-    
-    await message.reply_text(
-        "💳 **UPI ID for Payment:**\n\n`111kuldeep222-4@okicici`\n\nCopy this UPI ID and make payment of ₹100",
-        parse_mode=ParseMode.MARKDOWN
-    )
-
 # Login command - FIXED: Blocking check
 @app.on_message(filters.command("login"))
 async def login_command(client, message: Message):
@@ -523,6 +607,7 @@ async def myplan_command(client, message: Message):
 ⭐ Priority support
 
 💎 **You're enjoying the best learning experience!**"""
+        await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
     else:
         plan_text = """🔒 **Free Plan**
 
@@ -535,9 +620,17 @@ async def myplan_command(client, message: Message):
 🎁 Get unlimited videos + premium books
 ⚡ Instant activation
 
-👉 Use `/premium_user` to upgrade now!"""
-    
-    await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
+💳 *UPI ID:* `111kuldeep222-4@okicici`
+*Amount:* ₹100"""
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📱 Contact Owner to Upgrade", url="https://t.me/Sush11112222")],
+            [InlineKeyboardButton("SUSHMA GANGWAR (Owner)", url="https://t.me/Sush11112222")]
+        ])
+        
+        await message.reply_text(plan_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
+        return
+
 # NEW Block User command - FIXED: Proper blocking
 @app.on_message(filters.command("block_user"))
 async def block_user_command(client, message: Message):
@@ -703,7 +796,6 @@ async def speedtest_command(client, message: Message):
     response_time = round((end_time - start_time) * 1000, 2)
     
     await msg.edit_text(f"📊 **Server Speed Test:**\n\n⏱ Response Time: {response_time}ms\n✅ Bot is running smoothly!")
-
 # ADVANCED Get File IDs command with complete file IDs and timestamps
 @app.on_message(filters.command("get_file_ids"))
 async def get_file_ids_command(client, message: Message):
@@ -795,6 +887,7 @@ async def remove_via_file_id_command(client, message: Message):
             "💡 Use `/get_file_ids` to get file IDs",
             parse_mode=ParseMode.MARKDOWN
         )
+
 # IMPROVED Clear Database command - FIXED: All buttons working properly
 @app.on_message(filters.command("clear_database"))
 async def clear_database_command(client, message: Message):
@@ -859,7 +952,6 @@ async def clear_subject_command(client, message: Message):
         "First, select the type of content you want to clear:",
         reply_markup=keyboard
     )
-
 # TRANSFER command - FIXED: Premium stays until removed
 @app.on_message(filters.command("transfer"))
 async def transfer_command(client, message: Message):
@@ -1016,6 +1108,7 @@ async def stats_command(client, message: Message):
 🎯 Admin: @Sush11112222"""
     
     await message.reply_text(stats_text)
+
 # IMPROVED USER INFO COMMAND - FIXED: Shows all users list
 @app.on_message(filters.command("user_info"))
 async def user_info_command(client, message: Message):
@@ -1115,7 +1208,6 @@ async def broadcast_command(client, message: Message):
         await broadcast_msg.edit_text(f"✅ Broadcast Complete!\n\n✅ Success: {success}\n❌ Failed: {failed}")
     else:
         await message.reply_text("Usage: /broadcast <message>")
-
 # IMPROVED File handling for admin - FIXED: Working properly
 @app.on_message(filters.user(ADMIN_ID) & (filters.video | filters.document | filters.audio | filters.photo))
 async def handle_files(client, message: Message):
@@ -1261,6 +1353,44 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
     
     # Check if user is blocked for all callbacks
     if await blocked_user_check(user_id, callback_query=callback_query):
+        return
+    
+    # Handle payment related callbacks - NEW ADDED
+    if data == "payment_done":
+        await callback_query.answer()
+        await client.send_message(
+            user_id,
+            "🎉 *Payment Confirmed!* 🎉\n\n"
+            "✅ Thank you for your payment!\n"
+            "📧 Please send payment screenshot to @Sush11112222\n"
+            "⚡ Your premium access will be activated within 30 minutes!\n\n"
+            "📚 *Ab enjoy karein MBBS ki premium content!* 📚",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    elif data == "payment_help":
+        await callback_query.answer()
+        await client.send_message(
+            user_id,
+            "💡 *Payment Help* 💡\n\n"
+            "1. Copy UPI ID: `111kuldeep222-4@okicici`\n"
+            "2. Open your UPI app (GPay/PhonePe/Paytm)\n"  
+            "3. Pay ₹100 to the UPI ID\n"
+            "4. Send screenshot to @Sush11112222\n"
+            "5. Get instant premium access!\n\n"
+            "Need help? Contact @Sush11112222 immediately!",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+
+    elif data == "send_ss":
+        await callback_query.answer()
+        await client.send_message(
+            user_id,
+            "📸 Please send your payment screenshot to the Bot Owner:\n\n@Sush11112222",
+            reply_markup=get_owner_button()
+        )
         return
     
     # Handle premium content selection with counts - FIXED
@@ -1460,7 +1590,7 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             else:
                 await callback_query.answer("❌ File not found!", show_alert=True)
         return
-    # Handle clear subject type selection (Free or Premium) - FIXED
+    # Handle all other existing callbacks (clear database, transfer, etc.)
     elif data.startswith("clear_subject_"):
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
@@ -1487,7 +1617,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             )
         return
     
-    # Handle clear subject content type (Videos or Books) - FIXED
     elif data.startswith("clear_sub_") and (data.endswith("_videos") or data.endswith("_books")):
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
@@ -1535,7 +1664,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             )
         return
     
-    # Handle subject selection for clearing with final warning - FIXED
     elif data.startswith("clear_sub_") and len(data.split("_")) >= 5:
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
@@ -1580,7 +1708,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             await callback_query.message.edit_text(warning_text, reply_markup=keyboard)
         return
     
-    # Handle clear database category selection - FIXED: All buttons working
     elif data.startswith("clear_db_"):
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
@@ -1705,7 +1832,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
                 )
                 return
         return
-    # Handle final confirmations for clearing - FIXED: All working
     elif data.startswith("confirm_clear_"):
         if not is_admin(user_id):
             await callback_query.answer("❌ Admin only command!", show_alert=True)
@@ -1755,7 +1881,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
                 return
         return
     
-    # Handle transfer confirmation - FIXED
     elif data.startswith("transfer_confirm_"):
         parts = data.split("_")
         if len(parts) >= 3:
@@ -1783,14 +1908,6 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
     elif data == "clear_cancel":
         await callback_query.message.edit_text("✅ **Operation Cancelled!**\n\nNo changes were made to the database.")
         return
-    
-    elif data == "send_ss":
-        await callback_query.answer()
-        await client.send_message(
-            user_id,
-            "📸 Please send your payment screenshot to the Bot Owner:\n\n@Sush11112222",
-            reply_markup=get_owner_button()
-        )
 
 print("🤖 MBBS Archive Bot is starting...")
 app.run()

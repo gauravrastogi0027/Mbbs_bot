@@ -1,0 +1,30 @@
+🤖 MBBS Archive Bot is starting...
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/mbbs_bot/mbbs_bot.py", line 1796, in <module>
+    app.run()
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/methods/utilities/run.py", line 86, in run
+    self.stop()
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/sync.py", line 66, in async_to_sync_wrap
+    return loop.run_until_complete(coroutine)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/methods/utilities/stop.py", line 65, in stop
+    await do_it()
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/methods/utilities/stop.py", line 61, in do_it
+    await self.terminate()
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/methods/auth/terminate.py", line 46, in terminate
+    await self.storage.save()
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/storage/sqlite_storage.py", line 119, in save
+    await self.date(int(time.time()))
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/storage/sqlite_storage.py", line 204, in date
+    return self._accessor(value)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/storage/sqlite_storage.py", line 189, in _accessor
+    return self._get() if value == object else self._set(value)
+                                               ^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/usr/lib/python3.12/site-packages/pyrogram/storage/sqlite_storage.py", line 182, in _set
+    with self.conn:
+         ^^^^^^^^^
+sqlite3.OperationalError: disk I/O error
