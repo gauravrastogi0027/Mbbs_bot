@@ -1,14 +1,17 @@
 import os
+import asyncio
 import sqlite3
 import time
 import json
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
-from telegram.constants import ParseMode
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
+from pyrogram.enums import ParseMode
 
 # Bot Configuration
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A")
+API_ID = 23208887
+API_HASH = "16e19adb7c4199f88810c9339ce9aaac"
+BOT_TOKEN = "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A"
 ADMIN_ID = 1421077551
 
 # Database setup with better connection handling
@@ -94,6 +97,9 @@ class Database:
 # Initialize database
 db = Database()
 
+# Initialize bot with fresh session
+app = Client("mbbs_bot_final_fixed", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
 # Auto caption function
 def add_caption(filename=""):
     caption = f"""🎓 MBBS ARCHIVE 📚
@@ -160,6 +166,7 @@ def increment_warning(user_id):
             db.execute('UPDATE users SET is_blocked = 1 WHERE user_id = ?', (user_id,))
             return True  # User blocked
     return False  # User not blocked
+
 # Get file counts for subjects
 def get_subject_file_counts(subject, content_type="free"):
     """Get file counts for a subject (free or premium)"""
@@ -192,10 +199,10 @@ subjects = [
 ]
 
 # Admin warning function
-async def admin_warning(update: Update):
-    if not is_admin(update.effective_user.id):
+async def admin_warning(message):
+    if not is_admin(message.from_user.id):
         warning_text = "🚫 **Access Denied!**\n\nThis command is only for Bot Administrators.\n\nIf you need assistance, contact the bot owner."
-        await update.message.reply_text(
+        await message.reply_text(
             warning_text,
             reply_markup=get_owner_button(),
             parse_mode=ParseMode.MARKDOWN
@@ -204,7 +211,7 @@ async def admin_warning(update: Update):
     return False
 
 # Blocked user check function
-async def blocked_user_check(user_id, update: Update = None, callback_query = None):
+async def blocked_user_check(user_id, message=None, callback_query=None):
     if is_user_blocked(user_id):
         block_message = """⚠️ Access Denied!
 You have been blocked from using this bot. 🚫
@@ -214,8 +221,8 @@ please contact the bot owner for review and unblocking.
 
 🕵️‍♂️ Unauthorized or repeated violations may lead to a permanent ban."""
         
-        if update and update.message:
-            await update.message.reply_text(
+        if message:
+            await message.reply_text(
                 block_message,
                 reply_markup=get_owner_button(),
                 parse_mode=ParseMode.MARKDOWN
@@ -224,14 +231,14 @@ please contact the bot owner for review and unblocking.
             await callback_query.answer(block_message, show_alert=True)
         return True
     return False
-
 # Start command - FIXED: Proper blocking check
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
+@app.on_message(filters.command("start"))
+async def start_command(client, message: Message):
+    user = message.from_user
     update_user(user.id, user.username, user.first_name, user.last_name)
     
     # Check if user is blocked
-    if await blocked_user_check(user.id, update=update):
+    if await blocked_user_check(user.id, message=message):
         return
     
     welcome_text = """🎓 Welcome to the MBBS Learning Bot! 📚  
@@ -244,16 +251,17 @@ and take your medical journey to the next level! 💉🩺
 
 🚀 Start learning smarter — not harder!"""
     
-    await update.message.reply_text(
+    await message.reply_text(
         welcome_text,
         reply_markup=get_owner_button(),
         parse_mode=ParseMode.MARKDOWN
     )
 
 # Help command - FIXED: Blocking check
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("help"))
+async def help_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     help_text = """🤖 **MBBS ARCHIVE BOT - Complete Guide** 📚
@@ -299,11 +307,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 **Need Help?** Contact: @Sush11112222"""
     
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+
 # Videos command with file counts - FIXED: Blocking check
-async def videos_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("videos"))
+async def videos_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     keyboard = []
@@ -321,18 +331,19 @@ async def videos_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")])
     
     if not keyboard or len(keyboard) == 1:  # Only owner button
-        await update.message.reply_text("📭 No video content available yet!")
+        await message.reply_text("📭 No video content available yet!")
         return
     
-    await update.message.reply_text(
+    await message.reply_text(
         "🎬 **Select Subject for Videos:**\n\n📊 Numbers show available video counts",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 # Books command with file counts - FIXED: Blocking check
-async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("books"))
+async def books_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     keyboard = []
@@ -350,18 +361,19 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")])
     
     if not keyboard or len(keyboard) == 1:  # Only owner button
-        await update.message.reply_text("📭 No book content available yet!")
+        await message.reply_text("📭 No book content available yet!")
         return
     
-    await update.message.reply_text(
+    await message.reply_text(
         "📚 **Select Subject for Books:**\n\n📊 Numbers show available book counts",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 # Premium user command - FIXED: Blocking check
-async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("premium_user"))
+async def premium_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     premium_text = """🎓 Upgrade to Premium Now!
@@ -388,20 +400,21 @@ Start learning smarter — not harder 💪"""
         [InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")]
     ])
     
-    await update.message.reply_text(
+    await message.reply_text(
         premium_text,
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
 
 # NEW Premium Content command with file counts - FIXED: Blocking check
-async def premium_content_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("premium_content"))
+async def premium_content_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     if not is_premium(user_id):
-        await update.message.reply_text(
+        await message.reply_text(
             "❌ **Premium Access Required!**\n\n"
             "This content is only available for premium members.\n"
             "Use `/premium_user` to upgrade your account.",
@@ -427,16 +440,17 @@ Enjoy your learning journey with us! ✨"""
         [InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")]
     ])
     
-    await update.message.reply_text(
+    await message.reply_text(
         premium_content_text,
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
 
 # Send screenshot command - FIXED: Blocking check
-async def screenshot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("send_screenshot"))
+async def screenshot_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     ss_text = """🎉 Thank you for your payment of ₹100! 💰  
@@ -450,47 +464,52 @@ You're just one step away from unlocking your Premium MBBS Videos & Books 📚�
 Once your payment is verified, your Premium Access will be activated instantly 🚀  
 Stay tuned for exclusive medical learning content! 🩺🎓"""
     
-    await update.message.reply_text(
+    await message.reply_text(
         ss_text,
         reply_markup=get_owner_button(),
         parse_mode=ParseMode.MARKDOWN
     )
 
 # UPI ID command - FIXED: Blocking check
-async def upi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("upi_id"))
+async def upi_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
-    await update.message.reply_text(
+    await message.reply_text(
         "💳 **UPI ID for Payment:**\n\n`111kuldeep222-4@okicici`\n\nCopy this UPI ID and make payment of ₹100",
         parse_mode=ParseMode.MARKDOWN
     )
+
 # Login command - FIXED: Blocking check
-async def login_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("login"))
+async def login_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
-    user = update.effective_user
+    user = message.from_user
     update_user(user.id, user.username, user.first_name, user.last_name)
     db.execute('UPDATE users SET login_time = ? WHERE user_id = ?', (int(time.time()), user.id))
     
-    await update.message.reply_text("✅ Login successful! You can now access bot features.")
+    await message.reply_text("✅ Login successful! You can now access bot features.")
 
 # Logout command - FIXED: Blocking check
-async def logout_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("logout"))
+async def logout_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
-    db.execute('UPDATE users SET login_time = NULL WHERE user_id = ?', (update.effective_user.id,))
-    await update.message.reply_text("✅ Logout successful!")
+    db.execute('UPDATE users SET login_time = NULL WHERE user_id = ?', (message.from_user.id,))
+    await message.reply_text("✅ Logout successful!")
 
 # Myplan command - FIXED: Premium users stay premium
-async def myplan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("myplan"))
+async def myplan_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     user = get_user(user_id)
@@ -518,15 +537,15 @@ async def myplan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 👉 Use `/premium_user` to upgrade now!"""
     
-    await update.message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
-
+    await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
 # NEW Block User command - FIXED: Proper blocking
-async def block_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("block_user"))
+async def block_user_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        user_input = context.args[0].strip()
+    if len(message.command) > 1:
+        user_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if user_input.isdigit():
@@ -538,19 +557,19 @@ async def block_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         if user:
             if user[0] == ADMIN_ID:
-                await update.message.reply_text("❌ You cannot block the bot owner!")
+                await message.reply_text("❌ You cannot block the bot owner!")
                 return
             
             block_user(user[0])
-            await update.message.reply_text(
+            await message.reply_text(
                 f"✅ User **{user[2]}** (ID: `{user[0]}`) has been blocked!\n\n"
                 f"They will no longer be able to use the bot until unblocked.",
                 parse_mode=ParseMode.MARKDOWN
             )
         else:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
     else:
-        await update.message.reply_text(
+        await message.reply_text(
             "🚫 **Block User**\n\n"
             "Usage: `/block_user <user_id_or_username>`\n\n"
             "Examples:\n"
@@ -560,12 +579,13 @@ async def block_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
 
 # NEW Unblock User command - FIXED: Proper unblocking
-async def unblock_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("unblock_user"))
+async def unblock_user_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        user_input = context.args[0].strip()
+    if len(message.command) > 1:
+        user_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if user_input.isdigit():
@@ -592,24 +612,24 @@ Your account has been successfully unblocked. You can now use the bot again.
 We hope you have a better experience this time! ✨"""
 
             # Send message to admin
-            await update.message.reply_text(
+            await message.reply_text(
                 f"✅ User **{user[2]}** (ID: `{user[0]}`) has been unblocked!",
                 parse_mode=ParseMode.MARKDOWN
             )
             
             # Send message to unblocked user
             try:
-                await context.bot.send_message(
-                    chat_id=user[0],
-                    text=unblock_message,
+                await client.send_message(
+                    user[0],
+                    unblock_message,
                     parse_mode=ParseMode.MARKDOWN
                 )
             except:
-                await update.message.reply_text("ℹ️ Could not send unblock notification to user (they might have blocked the bot).")
+                await message.reply_text("ℹ️ Could not send unblock notification to user (they might have blocked the bot).")
         else:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
     else:
-        await update.message.reply_text(
+        await message.reply_text(
             "✅ **Unblock User**\n\n"
             "Usage: `/unblock_user <user_id_or_username>`\n\n"
             "Examples:\n"
@@ -619,14 +639,15 @@ We hope you have a better experience this time! ✨"""
         )
 
 # NEW Blocked User List command
-async def blocked_user_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("blocked_user_list"))
+async def blocked_user_list_command(client, message: Message):
+    if await admin_warning(message):
         return
     
     blocked_users = db.fetchall('SELECT * FROM users WHERE is_blocked = 1 ORDER BY created_at DESC')
     
     if not blocked_users:
-        await update.message.reply_text("✅ No blocked users found!")
+        await message.reply_text("✅ No blocked users found!")
         return
     
     blocked_text = "🚫 **Blocked Users List** 🚫\n\n"
@@ -647,41 +668,46 @@ async def blocked_user_list_command(update: Update, context: ContextTypes.DEFAUL
     if len(blocked_users) > 50:
         blocked_text += f"\n📋 Showing 50 out of {len(blocked_users)} blocked users"
     
-    await update.message.reply_text(blocked_text, parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(blocked_text, parse_mode=ParseMode.MARKDOWN)
+
 # Get username command - FIXED: Blocking check
-async def username_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("get_username"))
+async def username_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
-    user = update.effective_user
+    user = message.from_user
     username = f"@{user.username}" if user.username else "Not set"
-    await update.message.reply_text(f"👤 **Your Username:** {username}")
+    await message.reply_text(f"👤 **Your Username:** {username}")
 
 # Get ID command - FIXED: Blocking check
-async def id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("get_id"))
+async def id_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
-    await update.message.reply_text(f"🆔 **Your User ID:** `{update.effective_user.id}`", parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(f"🆔 **Your User ID:** `{message.from_user.id}`", parse_mode=ParseMode.MARKDOWN)
 
 # Speedtest command - FIXED: Blocking check
-async def speedtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("speedtest"))
+async def speedtest_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     start_time = time.time()
-    msg = await update.message.reply_text("🚀 Testing server speed...")
+    msg = await message.reply_text("🚀 Testing server speed...")
     end_time = time.time()
     response_time = round((end_time - start_time) * 1000, 2)
     
     await msg.edit_text(f"📊 **Server Speed Test:**\n\n⏱ Response Time: {response_time}ms\n✅ Bot is running smoothly!")
 
 # ADVANCED Get File IDs command with complete file IDs and timestamps
-async def get_file_ids_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("get_file_ids"))
+async def get_file_ids_command(client, message: Message):
+    if await admin_warning(message):
         return
     
     total_files = db.fetchone('SELECT COUNT(*) FROM file_ids')[0] or 0
@@ -723,19 +749,20 @@ async def get_file_ids_command(update: Update, context: ContextTypes.DEFAULT_TYP
         parts = [files_text[i:i+4000] for i in range(0, len(files_text), 4000)]
         for i, part in enumerate(parts):
             if i == 0:
-                await update.message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
+                await message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
             else:
-                await update.message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
+                await message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
     else:
-        await update.message.reply_text(files_text, parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text(files_text, parse_mode=ParseMode.MARKDOWN)
 
 # NEW Remove via File ID command
-async def remove_via_file_id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("remove_via_file_id"))
+async def remove_via_file_id_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        file_id = context.args[0].strip()
+    if len(message.command) > 1:
+        file_id = message.command[1].strip()
         
         # Check if file exists
         file_data = db.fetchone('SELECT file_name, file_type, subject, category, is_premium FROM file_ids WHERE file_id = ?', (file_id,))
@@ -748,7 +775,7 @@ async def remove_via_file_id_command(update: Update, context: ContextTypes.DEFAU
             db.execute('DELETE FROM file_categories WHERE file_id = ?', (file_id,))
             
             content_type = "Premium" if is_premium else "Free"
-            await update.message.reply_text(
+            await message.reply_text(
                 f"✅ **File Successfully Removed!**\n\n"
                 f"📝 File Name: {file_name}\n"
                 f"📁 Type: {file_type.upper()}\n"
@@ -758,9 +785,9 @@ async def remove_via_file_id_command(update: Update, context: ContextTypes.DEFAU
                 parse_mode=ParseMode.MARKDOWN
             )
         else:
-            await update.message.reply_text("❌ File not found! Please check the file ID.")
+            await message.reply_text("❌ File not found! Please check the file ID.")
     else:
-        await update.message.reply_text(
+        await message.reply_text(
             "🗑️ **Remove File via File ID**\n\n"
             "Usage: `/remove_via_file_id <file_id>`\n\n"
             "Example:\n"
@@ -768,10 +795,10 @@ async def remove_via_file_id_command(update: Update, context: ContextTypes.DEFAU
             "💡 Use `/get_file_ids` to get file IDs",
             parse_mode=ParseMode.MARKDOWN
         )
-
 # IMPROVED Clear Database command - FIXED: All buttons working properly
-async def clear_database_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("clear_database"))
+async def clear_database_command(client, message: Message):
+    if await admin_warning(message):
         return
     
     # First ask what type of content to clear
@@ -806,15 +833,16 @@ async def clear_database_command(update: Update, context: ContextTypes.DEFAULT_T
 
 🔒 **What type of content do you want to clear?**"""
     
-    await update.message.reply_text(
+    await message.reply_text(
         warning_text,
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
 
 # IMPROVED Clear Subject command - FIXED: Working properly
-async def clear_subject_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("clear_subject"))
+async def clear_subject_command(client, message: Message):
+    if await admin_warning(message):
         return
     
     # First ask Free or Premium content
@@ -826,33 +854,35 @@ async def clear_subject_command(update: Update, context: ContextTypes.DEFAULT_TY
         [InlineKeyboardButton("❌ Cancel", callback_data="clear_cancel")]
     ])
     
-    await update.message.reply_text(
+    await message.reply_text(
         "🗑️ **Clear Subject Content**\n\n"
         "First, select the type of content you want to clear:",
         reply_markup=keyboard
     )
+
 # TRANSFER command - FIXED: Premium stays until removed
-async def transfer_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if await blocked_user_check(user_id, update=update):
+@app.on_message(filters.command("transfer"))
+async def transfer_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
         return
     
     current_user = get_user(user_id)
     
     if not current_user:
-        await update.message.reply_text("❌ Please use `/start` command first!")
+        await message.reply_text("❌ Please use `/start` command first!")
         return
     
     if not is_premium(user_id):
-        await update.message.reply_text(
+        await message.reply_text(
             "❌ **You need to be a Premium User to transfer premium!**\n\n"
             "Upgrade to premium first using `/premium_user` command.",
             parse_mode=ParseMode.MARKDOWN
         )
         return
     
-    if len(context.args) > 0:
-        target_input = context.args[0].strip()
+    if len(message.command) > 1:
+        target_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if target_input.isdigit():
@@ -863,15 +893,15 @@ async def transfer_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target_user = get_user_by_username(username)
         
         if not target_user:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
             return
         
         if target_user[0] == user_id:
-            await update.message.reply_text("❌ You cannot transfer premium to yourself!")
+            await message.reply_text("❌ You cannot transfer premium to yourself!")
             return
         
         if is_premium(target_user[0]):
-            await update.message.reply_text(f"❌ User **{target_user[2]}** is already a premium user!")
+            await message.reply_text(f"❌ User **{target_user[2]}** is already a premium user!")
             return
         
         # Confirmation keyboard for transfer
@@ -895,13 +925,13 @@ async def transfer_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🔒 **Are you sure you want to transfer your premium membership?**"""
         
-        await update.message.reply_text(
+        await message.reply_text(
             confirmation_text,
             reply_markup=keyboard,
             parse_mode=ParseMode.MARKDOWN
         )
     else:
-        await update.message.reply_text(
+        await message.reply_text(
             "🔄 **Transfer Premium to Another User**\n\n"
             "Usage: `/transfer <user_id_or_username>`\n\n"
             "Examples:\n"
@@ -912,12 +942,13 @@ async def transfer_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # Admin commands with protection
-async def add_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("add_user_premium"))
+async def add_premium_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        user_input = context.args[0].strip()
+    if len(message.command) > 1:
+        user_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if user_input.isdigit():
@@ -931,18 +962,19 @@ async def add_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         
         if user:
             set_premium(user[0], 1)
-            await update.message.reply_text(f"✅ User **{user[2]}** (ID: `{user[0]}`) added to premium!", parse_mode=ParseMode.MARKDOWN)
+            await message.reply_text(f"✅ User **{user[2]}** (ID: `{user[0]}`) added to premium!", parse_mode=ParseMode.MARKDOWN)
         else:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
     else:
-        await update.message.reply_text("Usage: `/add_user_premium <user_id_or_username>`\n\nExample:\n`/add_user_premium 123456789`\n`/add_user_premium @username`", parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text("Usage: `/add_user_premium <user_id_or_username>`\n\nExample:\n`/add_user_premium 123456789`\n`/add_user_premium @username`", parse_mode=ParseMode.MARKDOWN)
 
-async def remove_premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("remove_user_premium"))
+async def remove_premium_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        user_input = context.args[0].strip()
+    if len(message.command) > 1:
+        user_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if user_input.isdigit():
@@ -956,14 +988,15 @@ async def remove_premium_command(update: Update, context: ContextTypes.DEFAULT_T
         
         if user:
             set_premium(user[0], 0)
-            await update.message.reply_text(f"✅ User **{user[2]}** (ID: `{user[0]}`) removed from premium!", parse_mode=ParseMode.MARKDOWN)
+            await message.reply_text(f"✅ User **{user[2]}** (ID: `{user[0]}`) removed from premium!", parse_mode=ParseMode.MARKDOWN)
         else:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
     else:
-        await update.message.reply_text("Usage: `/remove_user_premium <user_id_or_username>`\n\nExample:\n`/remove_user_premium 123456789`\n`/remove_user_premium @username`", parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text("Usage: `/remove_user_premium <user_id_or_username>`\n\nExample:\n`/remove_user_premium 123456789`\n`/remove_user_premium @username`", parse_mode=ParseMode.MARKDOWN)
 
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("stats"))
+async def stats_command(client, message: Message):
+    if await admin_warning(message):
         return
     
     total_users = db.fetchone('SELECT COUNT(*) FROM users')[0] or 0
@@ -982,16 +1015,16 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🤖 Bot Status: ✅ Running
 🎯 Admin: @Sush11112222"""
     
-    await update.message.reply_text(stats_text)
-
+    await message.reply_text(stats_text)
 # IMPROVED USER INFO COMMAND - FIXED: Shows all users list
-async def user_info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("user_info"))
+async def user_info_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
+    if len(message.command) > 1:
         # Show specific user info
-        user_input = context.args[0].strip()
+        user_input = message.command[1].strip()
         
         # Check if input is user ID or username
         if user_input.isdigit():
@@ -1023,15 +1056,15 @@ async def user_info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 👀 Last Seen: {last_seen}
 📅 Join Date: {join_date}"""
             
-            await update.message.reply_text(info_text, parse_mode=ParseMode.MARKDOWN)
+            await message.reply_text(info_text, parse_mode=ParseMode.MARKDOWN)
         else:
-            await update.message.reply_text("❌ User not found! Please check the user ID or username.")
+            await message.reply_text("❌ User not found! Please check the user ID or username.")
     else:
         # Show all users list
         users = get_all_users()
         
         if not users:
-            await update.message.reply_text("📭 No users found in database!")
+            await message.reply_text("📭 No users found in database!")
             return
         
         users_text = "👥 **All Bot Users**\n\n"
@@ -1055,32 +1088,119 @@ async def user_info_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(users) > 50:
             users_text += f"\n📋 Showing 50 out of {len(users)} users"
         
-        await update.message.reply_text(users_text, parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text(users_text, parse_mode=ParseMode.MARKDOWN)
 
-async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if await admin_warning(update):
+@app.on_message(filters.command("broadcast"))
+async def broadcast_command(client, message: Message):
+    if await admin_warning(message):
         return
         
-    if len(context.args) > 0:
-        broadcast_text = " ".join(context.args)
+    if len(message.command) > 1:
+        broadcast_text = " ".join(message.command[1:])
         users = db.fetchall('SELECT user_id FROM users WHERE is_blocked = 0')
         
         success = 0
         failed = 0
         
-        broadcast_msg = await update.message.reply_text("📢 Starting broadcast...")
+        broadcast_msg = await message.reply_text("📢 Starting broadcast...")
         
         for user in users:
             try:
-                await context.bot.send_message(chat_id=user[0], text=f"📢 **Broadcast Message:**\n\n{broadcast_text}")
+                await client.send_message(user[0], f"📢 **Broadcast Message:**\n\n{broadcast_text}")
                 success += 1
             except:
                 failed += 1
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
         
         await broadcast_msg.edit_text(f"✅ Broadcast Complete!\n\n✅ Success: {success}\n❌ Failed: {failed}")
     else:
-        await update.message.reply_text("Usage: /broadcast <message>")
+        await message.reply_text("Usage: /broadcast <message>")
+
+# IMPROVED File handling for admin - FIXED: Working properly
+@app.on_message(filters.user(ADMIN_ID) & (filters.video | filters.document | filters.audio | filters.photo))
+async def handle_files(client, message: Message):
+    file_id = None
+    file_type = None
+    file_name = None
+    
+    if message.video:
+        file_type = "video"
+        file_id = message.video.file_id
+        file_name = message.video.file_name or "Video File"
+    elif message.document:
+        file_type = "document"
+        file_id = message.document.file_id
+        file_name = message.document.file_name or "Document File"
+    elif message.audio:
+        file_type = "audio"
+        file_id = message.audio.file_id
+        file_name = getattr(message.audio, 'file_name', 'Audio File') or "Audio File"
+    elif message.photo:
+        file_type = "photo"
+        file_id = message.photo.file_id
+        file_name = "Photo"
+    
+    if file_id:
+        # Save file to database temporarily
+        db.execute('''
+            INSERT OR REPLACE INTO file_ids (file_id, file_type, category, subject, file_name, added_time, is_premium)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (file_id, file_type, "pending", "pending", file_name, int(time.time()), 0))
+        
+        # Show 4 category options
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🎬 Save as VIDEOS", callback_data=f"cat_free_v_{file_id[:30]}"),
+                InlineKeyboardButton("💎 Save as PREMIUM VIDEOS", callback_data=f"cat_premium_v_{file_id[:30]}")
+            ],
+            [
+                InlineKeyboardButton("📚 Save as BOOKS", callback_data=f"cat_free_b_{file_id[:30]}"),
+                InlineKeyboardButton("💎 Save as PREMIUM BOOKS", callback_data=f"cat_premium_b_{file_id[:30]}")
+            ]
+        ])
+        
+        await message.reply_text(
+            f"💾 **File Received!**\n\n"
+            f"📁 Type: {file_type.upper()}\n"
+            f"📝 Name: {file_name}\n\n"
+            f"Select the category for this file:",
+            reply_markup=keyboard,
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+# File handling for non-admin users - FIXED: Warning system
+@app.on_message(~filters.user(ADMIN_ID) & (filters.video | filters.document | filters.audio | filters.photo))
+async def handle_unauthorized_files(client, message: Message):
+    user_id = message.from_user.id
+    user = get_user(user_id)
+    
+    if not user:
+        return
+    
+    # Increment warning count
+    is_blocked = increment_warning(user_id)
+    current_warnings = user[8] if user[8] else 0
+    new_warnings = current_warnings + 1
+    
+    if is_blocked:
+        await message.reply_text(
+            f"🚫 **You are permanently blocked from using this bot!**\n\n"
+            f"You have exceeded the maximum warning limit ({new_warnings}/10).\n"
+            f"Contact the bot owner if you think this is a mistake.",
+            reply_markup=get_owner_button()
+        )
+    else:
+        remaining_warnings = 10 - new_warnings
+        await message.reply_text(
+            f"⚠️ **WARNING: Unauthorized File Upload**\n\n"
+            f"You are not authorized to send files to this bot!\n"
+            f"**Warning Count:** {new_warnings}/10\n"
+            f"**Remaining Attempts:** {remaining_warnings}\n\n"
+            f"🚫 If you reach 10 warnings, you will be permanently blocked!\n"
+            f"Please contact the bot owner for assistance.",
+            reply_markup=get_owner_button()
+        )
+
 # Function to create subject keyboard with file counts - FIXED
 def create_subject_keyboard(file_id_short, category_prefix, content_type="free"):
     keyboard = []
@@ -1133,119 +1253,29 @@ def create_premium_content_keyboard(callback_prefix, content_type):
         keyboard.append(row)
     
     return InlineKeyboardMarkup(keyboard)
-
-# Handle document/video files from admin - FIXED: No changes needed here
-async def handle_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return await handle_unauthorized_files(update, context)
-    
-    message = update.message
-    file_id = None
-    file_type = None
-    file_name = None
-    
-    if message.video:
-        file_type = "video"
-        file_id = message.video.file_id
-        file_name = message.video.file_name or "Video File"
-    elif message.document:
-        file_type = "document"
-        file_id = message.document.file_id
-        file_name = message.document.file_name or "Document File"
-    elif message.audio:
-        file_type = "audio"
-        file_id = message.audio.file_id
-        file_name = getattr(message.audio, 'file_name', 'Audio File') or "Audio File"
-    elif message.photo:
-        file_type = "photo"
-        file_id = message.photo[-1].file_id  # Get highest quality photo
-        file_name = "Photo"
-    
-    if file_id:
-        # Save file to database temporarily
-        db.execute('''
-            INSERT OR REPLACE INTO file_ids (file_id, file_type, category, subject, file_name, added_time, is_premium)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (file_id, file_type, "pending", "pending", file_name, int(time.time()), 0))
-        
-        # Show 4 category options
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🎬 Save as VIDEOS", callback_data=f"cat_free_v_{file_id[:30]}"),
-                InlineKeyboardButton("💎 Save as PREMIUM VIDEOS", callback_data=f"cat_premium_v_{file_id[:30]}")
-            ],
-            [
-                InlineKeyboardButton("📚 Save as BOOKS", callback_data=f"cat_free_b_{file_id[:30]}"),
-                InlineKeyboardButton("💎 Save as PREMIUM BOOKS", callback_data=f"cat_premium_b_{file_id[:30]}")
-            ]
-        ])
-        
-        await message.reply_text(
-            f"💾 **File Received!**\n\n"
-            f"📁 Type: {file_type.upper()}\n"
-            f"📝 Name: {file_name}\n\n"
-            f"Select the category for this file:",
-            reply_markup=keyboard,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-# File handling for non-admin users - FIXED: Warning system
-async def handle_unauthorized_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user = get_user(user_id)
-    
-    if not user:
-        return
-    
-    # Increment warning count
-    is_blocked = increment_warning(user_id)
-    current_warnings = user[8] if user[8] else 0
-    new_warnings = current_warnings + 1
-    
-    if is_blocked:
-        await update.message.reply_text(
-            f"🚫 **You are permanently blocked from using this bot!**\n\n"
-            f"You have exceeded the maximum warning limit ({new_warnings}/10).\n"
-            f"Contact the bot owner if you think this is a mistake.",
-            reply_markup=get_owner_button()
-        )
-    else:
-        remaining_warnings = 10 - new_warnings
-        await update.message.reply_text(
-            f"⚠️ **WARNING: Unauthorized File Upload**\n\n"
-            f"You are not authorized to send files to this bot!\n"
-            f"**Warning Count:** {new_warnings}/10\n"
-            f"**Remaining Attempts:** {remaining_warnings}\n\n"
-            f"🚫 If you reach 10 warnings, you will be permanently blocked!\n"
-            f"Please contact the bot owner for assistance.",
-            reply_markup=get_owner_button()
-        )
-
 # IMPROVED Callback query handler - FIXED: All callbacks working with blocked user check
-async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    
-    data = query.data
-    user_id = update.effective_user.id
+@app.on_callback_query()
+async def handle_callbacks(client, callback_query: CallbackQuery):
+    data = callback_query.data
+    user_id = callback_query.from_user.id
     
     # Check if user is blocked for all callbacks
-    if await blocked_user_check(user_id, callback_query=query):
+    if await blocked_user_check(user_id, callback_query=callback_query):
         return
     
     # Handle premium content selection with counts - FIXED
     if data == "premium_videos":
         if not is_premium(user_id) and not is_admin(user_id):
-            await query.answer("❌ Premium content! Upgrade to access videos.", show_alert=True)
+            await callback_query.answer("❌ Premium content! Upgrade to access videos.", show_alert=True)
             return
         
         keyboard = create_premium_content_keyboard("pv", "video")
         
         if not keyboard.inline_keyboard:
-            await query.answer("❌ No premium videos available yet!", show_alert=True)
+            await callback_query.answer("❌ No premium videos available yet!", show_alert=True)
             return
         
-        await query.edit_message_text(
+        await callback_query.message.edit_text(
             "🎬 **Select Subject for Premium Videos:**\n\n📊 Numbers show available video counts",
             reply_markup=keyboard
         )
@@ -1253,16 +1283,16 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     elif data == "premium_books":
         if not is_premium(user_id) and not is_admin(user_id):
-            await query.answer("❌ Premium content! Upgrade to access books.", show_alert=True)
+            await callback_query.answer("❌ Premium content! Upgrade to access books.", show_alert=True)
             return
         
         keyboard = create_premium_content_keyboard("pb", "book")
         
         if not keyboard.inline_keyboard:
-            await query.answer("❌ No premium books available yet!", show_alert=True)
+            await callback_query.answer("❌ No premium books available yet!", show_alert=True)
             return
         
-        await query.edit_message_text(
+        await callback_query.message.edit_text(
             "📚 **Select Subject for Premium Books:**\n\n📊 Numbers show available book counts",
             reply_markup=keyboard
         )
@@ -1275,7 +1305,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Check premium access
         if not is_premium(user_id) and not is_admin(user_id):
-            await query.answer("❌ Premium content! Upgrade to access.", show_alert=True)
+            await callback_query.answer("❌ Premium content! Upgrade to access.", show_alert=True)
             return
         
         files = db.fetchall('SELECT file_id, file_name FROM file_ids WHERE category = ? AND subject = ? AND is_premium = ?', 
@@ -1286,22 +1316,23 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for file_id, file_name in files:
                 try:
                     if file_type == "video":
-                        await context.bot.send_video(chat_id=user_id, video=file_id, caption=add_caption(file_name))
+                        await client.send_video(user_id, file_id, caption=add_caption(file_name))
                     else:
-                        await context.bot.send_document(chat_id=user_id, document=file_id, caption=add_caption(file_name))
+                        await client.send_document(user_id, file_id, caption=add_caption(file_name))
                     sent_count += 1
-                    time.sleep(0.5)  # Reduced delay
+                    await asyncio.sleep(0.5)  # Reduced delay
                 except Exception as e:
                     print(f"Error sending file: {e}")
                     continue
             
             if sent_count > 0:
-                await query.answer(f"✅ Sent {sent_count} premium {file_type}s!")
+                await callback_query.answer(f"✅ Sent {sent_count} premium {file_type}s!")
             else:
-                await query.answer("❌ Failed to send files!", show_alert=True)
+                await callback_query.answer("❌ Failed to send files!", show_alert=True)
         else:
-            await query.answer("❌ No premium files available for this subject yet!", show_alert=True)
+            await callback_query.answer("❌ No premium files available for this subject yet!", show_alert=True)
         return
+    
     # Handle free video and book subject selection - FIXED
     elif data.startswith("v_") or data.startswith("b_"):
         subject = data.split("_")[1]
@@ -1315,21 +1346,21 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for file_id, file_name in files:
                 try:
                     if file_type == "video":
-                        await context.bot.send_video(chat_id=user_id, video=file_id, caption=add_caption(file_name))
+                        await client.send_video(user_id, file_id, caption=add_caption(file_name))
                     else:
-                        await context.bot.send_document(chat_id=user_id, document=file_id, caption=add_caption(file_name))
+                        await client.send_document(user_id, file_id, caption=add_caption(file_name))
                     sent_count += 1
-                    time.sleep(0.5)  # Reduced delay
+                    await asyncio.sleep(0.5)  # Reduced delay
                 except Exception as e:
                     print(f"Error sending file: {e}")
                     continue
             
             if sent_count > 0:
-                await query.answer(f"✅ Sent {sent_count} {file_type}s!")
+                await callback_query.answer(f"✅ Sent {sent_count} {file_type}s!")
             else:
-                await query.answer("❌ Failed to send files!", show_alert=True)
+                await callback_query.answer("❌ Failed to send files!", show_alert=True)
         else:
-            await query.answer("❌ No files available for this subject yet!", show_alert=True)
+            await callback_query.answer("❌ No files available for this subject yet!", show_alert=True)
         return
     
     # Handle category selection with 4 options - FIXED
@@ -1360,13 +1391,13 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 category_name = "Premium" if is_premium_content else "Free"
                 file_type_name = "Videos" if file_type == "v" else "Books"
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"📂 **Select Subject for {category_name} {file_type_name}:**\n\n"
                     f"Choose the subject where this file should be saved:",
                     reply_markup=subject_keyboard
                 )
             else:
-                await query.answer("❌ File not found in database!", show_alert=True)
+                await callback_query.answer("❌ File not found in database!", show_alert=True)
         return
     
     # Handle subject selection for file categorization - FIXED
@@ -1403,24 +1434,23 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 # SUCCESS CONFIRMATION MESSAGE
                 content_type = "Premium" if is_premium_content else "Free"
-                await query.answer(
+                await callback_query.answer(
                     f"✅ {content_type} {category.upper()} successfully saved to {subject_name.upper()}!",
                     show_alert=True
                 )
                 
                 file_name = "Unknown"
-                if query.message.reply_to_message:
-                    reply_msg = query.message.reply_to_message
-                    if reply_msg.video:
-                        file_name = reply_msg.video.file_name or "Video"
-                    elif reply_msg.document:
-                        file_name = reply_msg.document.file_name or "Document"
-                    elif reply_msg.audio:
-                        file_name = reply_msg.audio.file_name or "Audio"
-                    elif reply_msg.photo:
+                if callback_query.message.reply_to_message:
+                    if callback_query.message.reply_to_message.video:
+                        file_name = callback_query.message.reply_to_message.video.file_name or "Video"
+                    elif callback_query.message.reply_to_message.document:
+                        file_name = callback_query.message.reply_to_message.document.file_name or "Document"
+                    elif callback_query.message.reply_to_message.audio:
+                        file_name = callback_query.message.reply_to_message.audio.file_name or "Audio"
+                    elif callback_query.message.reply_to_message.photo:
                         file_name = "Photo"
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"✅ **File Successfully Saved!**\n\n"
                     f"📁 Category: {content_type} {category.upper()}\n"
                     f"📚 Subject: {subject_name.upper()}\n"
@@ -1428,13 +1458,12 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"🎉 **File has been perfectly saved to {subject_name.upper()} {content_type} section!**"
                 )
             else:
-                await query.answer("❌ File not found!", show_alert=True)
+                await callback_query.answer("❌ File not found!", show_alert=True)
         return
-    
     # Handle clear subject type selection (Free or Premium) - FIXED
     elif data.startswith("clear_subject_"):
         if not is_admin(user_id):
-            await query.answer("❌ Admin only command!", show_alert=True)
+            await callback_query.answer("❌ Admin only command!", show_alert=True)
             return
         
         parts = data.split("_")
@@ -1451,7 +1480,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ])
             
             content_type_name = "Free" if content_type == "free" else "Premium"
-            await query.edit_message_text(
+            await callback_query.message.edit_text(
                 f"🗑️ **Clear {content_type_name} Content**\n\n"
                 f"Select which type of {content_type.lower()} content you want to delete:",
                 reply_markup=keyboard
@@ -1461,7 +1490,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Handle clear subject content type (Videos or Books) - FIXED
     elif data.startswith("clear_sub_") and (data.endswith("_videos") or data.endswith("_books")):
         if not is_admin(user_id):
-            await query.answer("❌ Admin only command!", show_alert=True)
+            await callback_query.answer("❌ Admin only command!", show_alert=True)
             return
         
         parts = data.split("_")
@@ -1491,14 +1520,14 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 keyboard.append(row)
             
             if not keyboard:
-                await query.answer(f"ℹ️ No {content_type} {file_type} found in any subject!", show_alert=True)
+                await callback_query.answer(f"ℹ️ No {content_type} {file_type} found in any subject!", show_alert=True)
                 return
             
             keyboard.append([InlineKeyboardButton("❌ Cancel", callback_data="clear_cancel")])
             
             content_type_name = "Free" if content_type == "free" else "Premium"
             file_type_name = "Videos" if file_type == "videos" else "Books"
-            await query.edit_message_text(
+            await callback_query.message.edit_text(
                 f"🗑️ **Clear {content_type_name} {file_type_name}**\n\n"
                 f"Select which subject's {content_type.lower()} {file_type.lower()} you want to delete:\n\n"
                 f"📊 Numbers show file counts",
@@ -1509,7 +1538,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Handle subject selection for clearing with final warning - FIXED
     elif data.startswith("clear_sub_") and len(data.split("_")) >= 5:
         if not is_admin(user_id):
-            await query.answer("❌ Admin only command!", show_alert=True)
+            await callback_query.answer("❌ Admin only command!", show_alert=True)
             return
         
         parts = data.split("_")
@@ -1526,7 +1555,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 count = book_count
             
             if count == 0:
-                await query.answer(f"ℹ️ No {content_type} {file_type} found in {subject_name.upper()}!", show_alert=True)
+                await callback_query.answer(f"ℹ️ No {content_type} {file_type} found in {subject_name.upper()}!", show_alert=True)
                 return
             
             # Final confirmation for subject clearing
@@ -1548,12 +1577,13 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🔒 **Are you absolutely sure?**"""
             
-            await query.edit_message_text(warning_text, reply_markup=keyboard)
+            await callback_query.message.edit_text(warning_text, reply_markup=keyboard)
         return
+    
     # Handle clear database category selection - FIXED: All buttons working
     elif data.startswith("clear_db_"):
         if not is_admin(user_id):
-            await query.answer("❌ Admin only command!", show_alert=True)
+            await callback_query.answer("❌ Admin only command!", show_alert=True)
             return
         
         parts = data.split("_")
@@ -1563,7 +1593,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if clear_type == "free_videos":
                 file_count = db.fetchone('SELECT COUNT(*) FROM file_ids WHERE category = ? AND is_premium = ?', ("video", 0))[0] or 0
                 if file_count == 0:
-                    await query.answer("ℹ️ No free video files found to delete!", show_alert=True)
+                    await callback_query.answer("ℹ️ No free video files found to delete!", show_alert=True)
                     return
                 
                 # Final confirmation for free videos
@@ -1574,7 +1604,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ]
                 ])
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"🚨 **FINAL WARNING - Delete ALL Free Videos** 🚨\n\n"
                     f"⚠️ **This will delete {file_count} FREE video files permanently!**\n"
                     f"❌ **This action cannot be undone!**\n\n"
@@ -1586,7 +1616,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif clear_type == "premium_videos":
                 file_count = db.fetchone('SELECT COUNT(*) FROM file_ids WHERE category = ? AND is_premium = ?', ("video", 1))[0] or 0
                 if file_count == 0:
-                    await query.answer("ℹ️ No premium video files found to delete!", show_alert=True)
+                    await callback_query.answer("ℹ️ No premium video files found to delete!", show_alert=True)
                     return
                 
                 # Final confirmation for premium videos
@@ -1597,7 +1627,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ]
                 ])
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"🚨 **FINAL WARNING - Delete ALL Premium Videos** 🚨\n\n"
                     f"⚠️ **This will delete {file_count} PREMIUM video files permanently!**\n"
                     f"❌ **This action cannot be undone!**\n\n"
@@ -1609,7 +1639,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif clear_type == "free_books":
                 file_count = db.fetchone('SELECT COUNT(*) FROM file_ids WHERE category = ? AND is_premium = ?', ("book", 0))[0] or 0
                 if file_count == 0:
-                    await query.answer("ℹ️ No free book files found to delete!", show_alert=True)
+                    await callback_query.answer("ℹ️ No free book files found to delete!", show_alert=True)
                     return
                 
                 # Final confirmation for free books
@@ -1620,7 +1650,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ]
                 ])
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"🚨 **FINAL WARNING - Delete ALL Free Books** 🚨\n\n"
                     f"⚠️ **This will delete {file_count} FREE book files permanently!**\n"
                     f"❌ **This action cannot be undone!**\n\n"
@@ -1632,7 +1662,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif clear_type == "premium_books":
                 file_count = db.fetchone('SELECT COUNT(*) FROM file_ids WHERE category = ? AND is_premium = ?', ("book", 1))[0] or 0
                 if file_count == 0:
-                    await query.answer("ℹ️ No premium book files found to delete!", show_alert=True)
+                    await callback_query.answer("ℹ️ No premium book files found to delete!", show_alert=True)
                     return
                 
                 # Final confirmation for premium books
@@ -1643,7 +1673,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ]
                 ])
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"🚨 **FINAL WARNING - Delete ALL Premium Books** 🚨\n\n"
                     f"⚠️ **This will delete {file_count} PREMIUM book files permanently!**\n"
                     f"❌ **This action cannot be undone!**\n\n"
@@ -1655,7 +1685,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif clear_type == "all_content":
                 total_files = db.fetchone('SELECT COUNT(*) FROM file_ids')[0] or 0
                 if total_files == 0:
-                    await query.answer("ℹ️ No files found to delete!", show_alert=True)
+                    await callback_query.answer("ℹ️ No files found to delete!", show_alert=True)
                     return
                 
                 # Final confirmation for all content
@@ -1666,7 +1696,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ]
                 ])
                 
-                await query.edit_message_text(
+                await callback_query.message.edit_text(
                     f"🚨 **FINAL WARNING - Delete ALL Content** 🚨\n\n"
                     f"⚠️ **This will delete {total_files} files permanently!**\n"
                     f"❌ **This action cannot be undone!**\n\n"
@@ -1675,36 +1705,35 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
         return
-    
     # Handle final confirmations for clearing - FIXED: All working
     elif data.startswith("confirm_clear_"):
         if not is_admin(user_id):
-            await query.answer("❌ Admin only command!", show_alert=True)
+            await callback_query.answer("❌ Admin only command!", show_alert=True)
             return
         
         if data == "confirm_clear_free_videos":
             db.execute('DELETE FROM file_ids WHERE category = ? AND is_premium = ?', ("video", 0))
-            await query.edit_message_text("✅ **All Free Video Files Deleted Successfully!**")
+            await callback_query.message.edit_text("✅ **All Free Video Files Deleted Successfully!**")
             return
         
         elif data == "confirm_clear_premium_videos":
             db.execute('DELETE FROM file_ids WHERE category = ? AND is_premium = ?', ("video", 1))
-            await query.edit_message_text("✅ **All Premium Video Files Deleted Successfully!**")
+            await callback_query.message.edit_text("✅ **All Premium Video Files Deleted Successfully!**")
             return
         
         elif data == "confirm_clear_free_books":
             db.execute('DELETE FROM file_ids WHERE category = ? AND is_premium = ?', ("book", 0))
-            await query.edit_message_text("✅ **All Free Book Files Deleted Successfully!**")
+            await callback_query.message.edit_text("✅ **All Free Book Files Deleted Successfully!**")
             return
         
         elif data == "confirm_clear_premium_books":
             db.execute('DELETE FROM file_ids WHERE category = ? AND is_premium = ?', ("book", 1))
-            await query.edit_message_text("✅ **All Premium Book Files Deleted Successfully!**")
+            await callback_query.message.edit_text("✅ **All Premium Book Files Deleted Successfully!**")
             return
         
         elif data == "confirm_clear_all_content":
             db.execute('DELETE FROM file_ids')
-            await query.edit_message_text("🗑️ **All Content Deleted Successfully!**\n\nAll files have been removed from database!")
+            await callback_query.message.edit_text("🗑️ **All Content Deleted Successfully!**\n\nAll files have been removed from database!")
             return
         
         elif data.startswith("confirm_clear_sub_"):
@@ -1722,7 +1751,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 content_type_name = "Free" if content_type == "free" else "Premium"
                 file_type_name = "Videos" if file_type == "videos" else "Books"
-                await query.edit_message_text(f"✅ **{content_type_name} {subject_name.upper()} {file_type_name} Deleted Successfully!**")
+                await callback_query.message.edit_text(f"✅ **{content_type_name} {subject_name.upper()} {file_type_name} Deleted Successfully!**")
                 return
         return
     
@@ -1739,7 +1768,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             target_user = get_user(target_user_id)
             
-            await query.edit_message_text(
+            await callback_query.message.edit_text(
                 f"🔄 **Premium Transfer Successful!**\n\n"
                 f"✅ **{target_user[2]}** is now a **PREMIUM USER**\n"
                 f"❌ You are now a **FREE USER**\n\n"
@@ -1748,86 +1777,20 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     elif data == "transfer_cancel":
-        await query.edit_message_text("✅ **Transfer Cancelled!**\n\nNo changes were made to premium membership.")
+        await callback_query.message.edit_text("✅ **Transfer Cancelled!**\n\nNo changes were made to premium membership.")
         return
     
     elif data == "clear_cancel":
-        await query.edit_message_text("✅ **Operation Cancelled!**\n\nNo changes were made to the database.")
+        await callback_query.message.edit_text("✅ **Operation Cancelled!**\n\nNo changes were made to the database.")
         return
     
     elif data == "send_ss":
-        await query.answer()
-        await context.bot.send_message(
-            chat_id=user_id,
-            text="📸 Please send your payment screenshot to the Bot Owner:\n\n@Sush11112222",
+        await callback_query.answer()
+        await client.send_message(
+            user_id,
+            "📸 Please send your payment screenshot to the Bot Owner:\n\n@Sush11112222",
             reply_markup=get_owner_button()
         )
 
-# Main function to run the bot - FIXED FOR RENDER
-async def main():
-    # Create application
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add command handlers
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("videos", videos_command))
-    application.add_handler(CommandHandler("books", books_command))
-    application.add_handler(CommandHandler("premium_user", premium_command))
-    application.add_handler(CommandHandler("premium_content", premium_content_command))
-    application.add_handler(CommandHandler("send_screenshot", screenshot_command))
-    application.add_handler(CommandHandler("upi_id", upi_command))
-    application.add_handler(CommandHandler("login", login_command))
-    application.add_handler(CommandHandler("logout", logout_command))
-    application.add_handler(CommandHandler("myplan", myplan_command))
-    application.add_handler(CommandHandler("block_user", block_user_command))
-    application.add_handler(CommandHandler("unblock_user", unblock_user_command))
-    application.add_handler(CommandHandler("blocked_user_list", blocked_user_list_command))
-    application.add_handler(CommandHandler("get_username", username_command))
-    application.add_handler(CommandHandler("get_id", id_command))
-    application.add_handler(CommandHandler("speedtest", speedtest_command))
-    application.add_handler(CommandHandler("get_file_ids", get_file_ids_command))
-    application.add_handler(CommandHandler("remove_via_file_id", remove_via_file_id_command))
-    application.add_handler(CommandHandler("clear_database", clear_database_command))
-    application.add_handler(CommandHandler("clear_subject", clear_subject_command))
-    application.add_handler(CommandHandler("transfer", transfer_command))
-    application.add_handler(CommandHandler("add_user_premium", add_premium_command))
-    application.add_handler(CommandHandler("remove_user_premium", remove_premium_command))
-    application.add_handler(CommandHandler("stats", stats_command))
-    application.add_handler(CommandHandler("user_info", user_info_command))
-    application.add_handler(CommandHandler("broadcast", broadcast_command))
-    
-    # Add file handlers - FIXED: Changed filters.DOCUMENT to filters.Document.ALL
-    application.add_handler(MessageHandler(filters.VIDEO | filters.Document.ALL | filters.AUDIO | filters.PHOTO, handle_files))
-    
-    # Add callback query handler
-    application.add_handler(CallbackQueryHandler(handle_callbacks))
-    
-    print("🤖 MBBS Archive Bot is starting...")
-    
-    # Check if running on Render (with PORT environment variable)
-    if os.environ.get('RENDER') or os.environ.get('PORT'):
-        print("🚀 Running on Render with webhook...")
-        # Get port from environment variable (Render provides this)
-        PORT = int(os.environ.get('PORT', 8443))
-        
-        # Set webhook for Render - REPLACE "mbbs-archive-bot" WITH YOUR ACTUAL RENDER APP NAME
-        WEBHOOK_URL = f"https://mbbs-archive-bot.onrender.com/{BOT_TOKEN}"
-        
-        await application.bot.set_webhook(url=WEBHOOK_URL)
-        
-        # Start webhook server
-        await application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=WEBHOOK_URL
-        )
-    else:
-        print("🔧 Running locally with polling...")
-        # Start polling for local development
-        await application.run_polling()
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+print("🤖 MBBS Archive Bot is starting...")
+app.run()
