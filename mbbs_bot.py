@@ -1134,7 +1134,7 @@ def create_premium_content_keyboard(callback_prefix, content_type):
     
     return InlineKeyboardMarkup(keyboard)
 
-# Handle document/video files from admin
+# Handle document/video files from admin - FIXED: No changes needed here
 async def handle_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return await handle_unauthorized_files(update, context)
@@ -1797,8 +1797,8 @@ async def main():
     application.add_handler(CommandHandler("user_info", user_info_command))
     application.add_handler(CommandHandler("broadcast", broadcast_command))
     
-    # Add file handlers
-    application.add_handler(MessageHandler(filters.VIDEO | filters.DOCUMENT | filters.AUDIO | filters.PHOTO, handle_files))
+    # Add file handlers - FIXED: Changed filters.DOCUMENT to filters.Document.ALL
+    application.add_handler(MessageHandler(filters.VIDEO | filters.Document.ALL | filters.AUDIO | filters.PHOTO, handle_files))
     
     # Add callback query handler
     application.add_handler(CallbackQueryHandler(handle_callbacks))
