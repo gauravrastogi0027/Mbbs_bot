@@ -8,7 +8,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from telegram.constants import ParseMode
 
 # Bot Configuration
-BOT_TOKEN = "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A"
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A")
 ADMIN_ID = 1421077551
 
 # Database setup with better connection handling
@@ -160,7 +160,6 @@ def increment_warning(user_id):
             db.execute('UPDATE users SET is_blocked = 1 WHERE user_id = ?', (user_id,))
             return True  # User blocked
     return False  # User not blocked
-
 # Get file counts for subjects
 def get_subject_file_counts(subject, content_type="free"):
     """Get file counts for a subject (free or premium)"""
@@ -225,6 +224,7 @@ please contact the bot owner for review and unblocking.
             await callback_query.answer(block_message, show_alert=True)
         return True
     return False
+
 # Start command - FIXED: Proper blocking check
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -300,7 +300,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 **Need Help?** Contact: @Sush11112222"""
     
     await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
 # Videos command with file counts - FIXED: Blocking check
 async def videos_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -433,6 +432,7 @@ Enjoy your learning journey with us! ✨"""
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
+
 # Send screenshot command - FIXED: Blocking check
 async def screenshot_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -466,7 +466,6 @@ async def upi_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💳 **UPI ID for Payment:**\n\n`111kuldeep222-4@okicici`\n\nCopy this UPI ID and make payment of ₹100",
         parse_mode=ParseMode.MARKDOWN
     )
-
 # Login command - FIXED: Blocking check
 async def login_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1303,7 +1302,6 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.answer("❌ No premium files available for this subject yet!", show_alert=True)
         return
-    
     # Handle free video and book subject selection - FIXED
     elif data.startswith("v_") or data.startswith("b_"):
         subject = data.split("_")[1]
@@ -1333,6 +1331,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.answer("❌ No files available for this subject yet!", show_alert=True)
         return
+    
     # Handle category selection with 4 options - FIXED
     elif data.startswith("cat_"):
         parts = data.split("_")
@@ -1764,7 +1763,7 @@ async def handle_callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_owner_button()
         )
 
-# Main function to run the bot
+# Main function to run the bot - FIXED FOR RENDER
 async def main():
     # Create application
     application = Application.builder().token(BOT_TOKEN).build()
@@ -1806,8 +1805,28 @@ async def main():
     
     print("🤖 MBBS Archive Bot is starting...")
     
-    # Start the bot
-    await application.run_polling()
+    # Check if running on Render (with PORT environment variable)
+    if os.environ.get('RENDER') or os.environ.get('PORT'):
+        print("🚀 Running on Render with webhook...")
+        # Get port from environment variable (Render provides this)
+        PORT = int(os.environ.get('PORT', 8443))
+        
+        # Set webhook for Render - REPLACE "mbbs-archive-bot" WITH YOUR ACTUAL RENDER APP NAME
+        WEBHOOK_URL = f"https://mbbs-archive-bot.onrender.com/{BOT_TOKEN}"
+        
+        await application.bot.set_webhook(url=WEBHOOK_URL)
+        
+        # Start webhook server
+        await application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=BOT_TOKEN,
+            webhook_url=WEBHOOK_URL
+        )
+    else:
+        print("🔧 Running locally with polling...")
+        # Start polling for local development
+        await application.run_polling()
 
 if __name__ == "__main__":
     import asyncio
