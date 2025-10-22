@@ -14,10 +14,11 @@ API_HASH = "16e19adb7c4199f88810c9339ce9aaac"
 BOT_TOKEN = "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A"
 ADMIN_ID = 1421077551
 
-# Create professional reply keyboard with website button - WITH CLICK HERE TEXT
+# Create professional reply keyboard with website button - WITH HELP BUTTON
 def get_main_keyboard():
     return ReplyKeyboardMarkup([
-        ["👆 Click Here - 🎁 Get Premium Content FREE 🌐"]  # 👆 + "Click Here" text added
+        ["👆 Click Here - 🎁 Get Premium Content FREE 🌐"],  # Main button
+        ["💡 How to Access Content & Payment Help ❓"]        # New Help button
     ], resize_keyboard=True)
 # Database setup with better connection handling
 class Database:
@@ -261,6 +262,56 @@ WEBSITE_MESSAGE = """🌐 **MBBS ARCHIVE - Free Medical Excellence**
 💫 **Transform Your MBBS Journey Today!**
 👨‍⚕️ Your Success Story Starts Here 📚"""
 
+# Help guide message - COMPREHENSIVE GUIDE
+HELP_GUIDE_MESSAGE = """🎓 **MBBS ARCHIVE - Complete Access Guide** 📚
+
+**🚀 HOW TO ACCESS CONTENT:**
+
+**📖 FREE CONTENT ACCESS:**
+1. Use `/videos` - Browse free video lectures
+2. Use `/books` - Access free study materials
+3. Select your subject from the list
+4. Get instant access to free resources
+
+**💎 PREMIUM CONTENT ACCESS:**
+1. Use `/premium_user` - Check premium features
+2. Pay ₹100 via `/direct_payment` or `/upi_id`
+3. Send payment screenshot with `/send_screenshot`
+4. Get instant premium activation
+5. Use `/premium_content` to access exclusive materials
+
+**🌐 WEBSITE ACCESS:**
+1. Click "Get Premium Content FREE" button
+2. Visit our website for enhanced experience
+3. Browse all content in organized categories
+4. Mobile-friendly interface
+
+**💰 PAYMENT METHODS:**
+• UPI Payment - Quick and secure
+• Direct Payment Link - One-click payment
+• Lifetime Access - One time payment only
+
+**📱 CONTENT TYPES AVAILABLE:**
+• 🎥 Video Lectures (Marrow, Prepladder, etc.)
+• 📚 Textbooks & Notes (All subjects)
+• 🧠 Previous Year Questions
+• 💡 Clinical Case Studies
+• 📝 Revision Sheets
+
+**👨‍⚕️ SUPPORT:**
+• Contact: @Sush11112222
+• Instant premium activation
+• 24/7 assistance available
+
+**🎯 QUICK COMMANDS:**
+• `/start` - Begin your journey
+• `/videos` / `/books` - Free content
+• `/premium_user` - Upgrade to premium
+• `/myplan` - Check your status
+• `/help` - This guide
+
+**💫 Start Your Medical Journey Today!**"""
+
 # Handle website button click - UPDATED WITH CLICK HERE TEXT
 @app.on_message(filters.text & filters.regex(r'^👆 Click Here - 🎁 Get Premium Content FREE 🌐$'))
 async def website_handler(client, message: Message):
@@ -279,6 +330,30 @@ async def website_handler(client, message: Message):
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN,
         disable_web_page_preview=False
+    )
+
+# Handle help button click
+@app.on_message(filters.text & filters.regex(r'^💡 How to Access Content & Payment Help ❓$'))
+async def help_button_handler(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
+        return
+    
+    # Create quick action buttons
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎥 Free Videos", callback_data="v_menu"), 
+         InlineKeyboardButton("📚 Free Books", callback_data="b_menu")],
+        [InlineKeyboardButton("💎 Go Premium", callback_data="premium_user"),
+         InlineKeyboardButton("💰 Make Payment", callback_data="direct_payment")],
+        [InlineKeyboardButton("🌐 Visit Website", url="https://dr-sushma-website.vercel.app/"),
+         InlineKeyboardButton("👩‍⚕️ Contact Owner", url="https://t.me/Sush11112222")]
+    ])
+    
+    await message.reply_text(
+        HELP_GUIDE_MESSAGE,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN,
+        disable_web_page_preview=True
     )
 
 # Start command - FIXED: Proper blocking check WITH REPLY KEYBOARD
@@ -307,7 +382,62 @@ and take your medical journey to the next level! 💉🩺
         parse_mode=ParseMode.MARKDOWN
     )
 
-# Rest of the code remains same...
+# Help command - FIXED: Blocking check WITH REPLY KEYBOARD + UPDATED COMMANDS
+@app.on_message(filters.command("help"))
+async def help_command(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
+        return
+    
+    help_text = """🤖 **MBBS ARCHIVE BOT - Complete Guide** 📚
+
+**Available Commands:**
+
+🔹 `/start` - Start the bot and view welcome message
+🔹 `/videos` - Access all MBBS video lectures  
+🔹 `/books` - Get textbooks, notes, and study materials
+🔹 `/login` - Login to your account
+🔹 `/logout` - Logout from your account
+🔹 `/premium_user` - Check premium features and subscription
+🔹 `/direct_payment` - Quick payment for premium access
+🔹 `/upi_id` - Get admin UPI ID for payment
+🔹 `/send_screenshot` - Send payment screenshot to owner
+🔹 `/premium_content` - Access exclusive premium materials
+🔹 `/myplan` - Check your premium plan details
+🔹 `/transfer` - Gift premium to friends
+🔹 `/speedtest` - Check server speed
+🔹 `/get_username` - Get your Telegram username
+🔹 `/get_id` - Get your Telegram user ID
+🔹 `/help` - View this help message
+
+**Admin Only Commands:**
+🔸 `/add_user_premium` - Add premium access to user
+🔸 `/remove_user_premium` - Remove premium access
+🔸 `/block_user` - Block a user from using bot
+🔸 `/unblock_user` - Unblock a blocked user
+🔸 `/blocked_user_list` - Show all blocked users
+🔸 `/broadcast` - Broadcast message to all users
+🔸 `/stats` - View bot statistics
+🔸 `/user_info` - Get user information
+🔸 `/get_file_ids` - Get all saved file IDs
+🔸 `/clear_database` - Clear complete database
+🔸 `/clear_subject` - Clear specific subject data
+🔸 `/remove_via_file_id` - Remove file using file ID
+
+**How to Use:**
+1. Use `/start` to begin
+2. Browse free content with `/videos` and `/books`
+3. For premium access, use `/premium_user`
+4. Make payment and send screenshot with `/send_screenshot`
+5. Enjoy unlimited access! 🎉
+
+**Need Help?** Contact: @Sush11112222"""
+    
+    await message.reply_text(
+        help_text, 
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
 # Videos command with file counts - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("videos"))
 async def videos_command(client, message: Message):
