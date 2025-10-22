@@ -4,8 +4,8 @@ import sqlite3
 import time
 import json
 from datetime import datetime
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
+from pyrogram import Client, filters, types
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery, ReplyKeyboardMarkup
 from pyrogram.enums import ParseMode
 
 # Bot Configuration
@@ -14,6 +14,11 @@ API_HASH = "16e19adb7c4199f88810c9339ce9aaac"
 BOT_TOKEN = "8267217639:AAFm_VSLGMjwhqEMilB0FmUlbWlwlRoj04A"
 ADMIN_ID = 1421077551
 
+# Create professional reply keyboard with website button - WITH CLICK HERE TEXT
+def get_main_keyboard():
+    return ReplyKeyboardMarkup([
+        ["👆 Click Here - 🎁 Get Premium Content FREE 🌐"]  # 👆 + "Click Here" text added
+    ], resize_keyboard=True)
 # Database setup with better connection handling
 class Database:
     def __init__(self):
@@ -93,12 +98,12 @@ class Database:
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return []
-
 # Initialize database
 db = Database()
 
 # Initialize bot with fresh session
 app = Client("mbbs_bot_final_fixed", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
 # Auto caption function
 def add_caption(filename=""):
     caption = f"""🎓 MBBS ARCHIVE 📚
@@ -141,7 +146,6 @@ def get_user_by_username(username):
 
 def get_all_users():
     return db.fetchall('SELECT * FROM users ORDER BY created_at DESC')
-
 def is_premium(user_id):
     user = get_user(user_id)
     return user and user[4] == 1
@@ -230,7 +234,54 @@ please contact the bot owner for review and unblocking.
             await callback_query.answer(block_message, show_alert=True)
         return True
     return False
-# Start command - FIXED: Proper blocking check
+# Website message text - SHORT POWERFUL VERSION
+WEBSITE_MESSAGE = """🌐 **MBBS ARCHIVE - Free Medical Excellence**
+
+**Your Complete MBBS Solution in One Place!**
+
+🚀 **What You Get:**
+• 📚 All MBBS Subjects Covered
+• 🎥 Premium Video Lectures  
+• 📝 Smart Notes & PYQs
+• 🧠 Clinical Case Studies
+• 💡 Exam Preparation Tools
+
+💎 **Why Us?**
+✅ 100% Free - No Payments Ever
+✅ Updated Content - Latest Syllabus
+✅ Mobile Friendly - Learn Anywhere
+✅ Doctor-Curated - Quality Assured
+
+🎯 **Created by Dr. Sushma Gangwar**
+> *"Making quality medical education accessible to all"*
+
+🔥 **Limited Free Access - Visit Now!**
+🔗 https://dr-sushma-website.vercel.app/
+
+💫 **Transform Your MBBS Journey Today!**
+👨‍⚕️ Your Success Story Starts Here 📚"""
+
+# Handle website button click - UPDATED WITH CLICK HERE TEXT
+@app.on_message(filters.text & filters.regex(r'^👆 Click Here - 🎁 Get Premium Content FREE 🌐$'))
+async def website_handler(client, message: Message):
+    user_id = message.from_user.id
+    if await blocked_user_check(user_id, message=message):
+        return
+    
+    # Create inline keyboard with website link
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚀 Visit MBBS ARCHIVE Website", url="https://dr-sushma-website.vercel.app/")],
+        [InlineKeyboardButton("👩‍⚕️ Contact Dr. Sushma Gangwar", url="https://t.me/Sush11112222")]
+    ])
+    
+    await message.reply_text(
+        WEBSITE_MESSAGE,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN,
+        disable_web_page_preview=False
+    )
+
+# Start command - FIXED: Proper blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("start"))
 async def start_command(client, message: Message):
     user = message.from_user
@@ -252,63 +303,12 @@ and take your medical journey to the next level! 💉🩺
     
     await message.reply_text(
         welcome_text,
-        reply_markup=get_owner_button(),
+        reply_markup=get_main_keyboard(),  # Added reply keyboard
         parse_mode=ParseMode.MARKDOWN
     )
 
-# Help command - FIXED: Blocking check
-@app.on_message(filters.command("help"))
-async def help_command(client, message: Message):
-    user_id = message.from_user.id
-    if await blocked_user_check(user_id, message=message):
-        return
-    
-    help_text = """🤖 **MBBS ARCHIVE BOT - Complete Guide** 📚
-
-**Available Commands:**
-
-🔹 `/start` - Start the bot and view welcome message
-🔹 `/videos` - Access all MBBS video lectures  
-🔹 `/books` - Get textbooks, notes, and study materials
-🔹 `/login` - Login to your account
-🔹 `/logout` - Logout from your account
-🔹 `/premium_user` - Check premium features and subscription
-🔹 `/upi_id` - Get admin UPI ID for payment
-🔹 `/send_screenshot` - Send payment screenshot to owner
-🔹 `/premium_content` - Access exclusive premium materials
-🔹 `/myplan` - Check your premium plan details
-🔹 `/transfer` - Gift premium to friends
-🔹 `/speedtest` - Check server speed
-🔹 `/get_username` - Get your Telegram username
-🔹 `/get_id` - Get your Telegram user ID
-🔹 `/get_file_ids` - Get all saved file IDs (Admin only)
-🔹 `/help` - View this help message
-
-**Admin Only Commands:**
-🔸 `/add_user_premium` - Add premium access to user
-🔸 `/remove_user_premium` - Remove premium access
-🔸 `/block_user` - Block a user from using bot
-🔸 `/unblock_user` - Unblock a blocked user
-🔸 `/broadcast` - Broadcast message to all users
-🔸 `/stats` - View bot statistics
-🔸 `/user_info` - Get user information
-🔸 `/clear_database` - Clear complete database (Admin only)
-🔸 `/clear_subject` - Clear specific subject data (Admin only)
-🔸 `/remove_via_file_id` - Remove file using file ID (Admin only)
-🔸 `/blocked_user_list` - Show all blocked users (Admin only)
-
-**How to Use:**
-1. Use `/start` to begin
-2. Browse free content with `/videos` and `/books`
-3. For premium access, use `/premium_user`
-4. Make payment and send screenshot with `/send_screenshot`
-5. Enjoy unlimited access! 🎉
-
-**Need Help?** Contact: @Sush11112222"""
-    
-    await message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
-# Videos command with file counts - FIXED: Blocking check
+# Rest of the code remains same...
+# Videos command with file counts - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("videos"))
 async def videos_command(client, message: Message):
     user_id = message.from_user.id
@@ -330,7 +330,10 @@ async def videos_command(client, message: Message):
     keyboard.append([InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")])
     
     if not keyboard or len(keyboard) == 1:  # Only owner button
-        await message.reply_text("📭 No video content available yet!")
+        await message.reply_text(
+            "📭 No video content available yet!",
+            reply_markup=get_main_keyboard()  # Added reply keyboard
+        )
         return
     
     await message.reply_text(
@@ -338,7 +341,7 @@ async def videos_command(client, message: Message):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# Books command with file counts - FIXED: Blocking check
+# Books command with file counts - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("books"))
 async def books_command(client, message: Message):
     user_id = message.from_user.id
@@ -360,14 +363,18 @@ async def books_command(client, message: Message):
     keyboard.append([InlineKeyboardButton("SUSHMA GANGWAR (Bot Owner)", url="https://t.me/Sush11112222")])
     
     if not keyboard or len(keyboard) == 1:  # Only owner button
-        await message.reply_text("📭 No book content available yet!")
+        await message.reply_text(
+            "📭 No book content available yet!",
+            reply_markup=get_main_keyboard()  # Added reply keyboard
+        )
         return
     
     await message.reply_text(
         "📚 **Select Subject for Books:**\n\n📊 Numbers show available book counts",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-# Premium user command - FIXED: Blocking check + CLICKABLE PAYMENT LINK
+
+# Premium user command - FIXED: Blocking check + CLICKABLE PAYMENT LINK WITH REPLY KEYBOARD
 @app.on_message(filters.command("premium_user"))
 async def premium_command(client, message: Message):
     user_id = message.from_user.id
@@ -406,8 +413,7 @@ Start learning smarter — not harder 💪"""
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN
     )
-
-# NEW DIRECT PAYMENT COMMAND ADDED - SUPER ATTRACTIVE
+# NEW DIRECT PAYMENT COMMAND ADDED - SUPER ATTRACTIVE WITH REPLY KEYBOARD
 @app.on_message(filters.command("direct_payment"))
 async def direct_payment(client, message: Message):
     user_id = message.from_user.id
@@ -452,7 +458,7 @@ async def direct_payment(client, message: Message):
         parse_mode=ParseMode.MARKDOWN
     )
 
-# UPI ID command - FIXED: Blocking check + CLICKABLE PAYMENT LINK
+# UPI ID command - FIXED: Blocking check + CLICKABLE PAYMENT LINK WITH REPLY KEYBOARD
 @app.on_message(filters.command("upi_id"))
 async def upi_command(client, message: Message):
     user_id = message.from_user.id
@@ -490,7 +496,7 @@ async def upi_command(client, message: Message):
         parse_mode=ParseMode.MARKDOWN
     )
 
-# NEW Premium Content command with file counts - FIXED: Blocking check
+# NEW Premium Content command with file counts - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("premium_content"))
 async def premium_content_command(client, message: Message):
     user_id = message.from_user.id
@@ -502,7 +508,8 @@ async def premium_content_command(client, message: Message):
             "❌ **Premium Access Required!**\n\n"
             "This content is only available for premium members.\n"
             "Use `/premium_user` to upgrade your account.",
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
         )
         return
     
@@ -530,7 +537,7 @@ Enjoy your learning journey with us! ✨"""
         parse_mode=ParseMode.MARKDOWN
     )
 
-# Send screenshot command - FIXED: Blocking check
+# Send screenshot command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("send_screenshot"))
 async def screenshot_command(client, message: Message):
     user_id = message.from_user.id
@@ -553,7 +560,7 @@ Stay tuned for exclusive medical learning content! 🩺🎓"""
         reply_markup=get_owner_button(),
         parse_mode=ParseMode.MARKDOWN
     )
-# Login command - FIXED: Blocking check
+# Login command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("login"))
 async def login_command(client, message: Message):
     user_id = message.from_user.id
@@ -564,9 +571,12 @@ async def login_command(client, message: Message):
     update_user(user.id, user.username, user.first_name, user.last_name)
     db.execute('UPDATE users SET login_time = ? WHERE user_id = ?', (int(time.time()), user.id))
     
-    await message.reply_text("✅ Login successful! You can now access bot features.")
+    await message.reply_text(
+        "✅ Login successful! You can now access bot features.",
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
 
-# Logout command - FIXED: Blocking check
+# Logout command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("logout"))
 async def logout_command(client, message: Message):
     user_id = message.from_user.id
@@ -574,9 +584,12 @@ async def logout_command(client, message: Message):
         return
     
     db.execute('UPDATE users SET login_time = NULL WHERE user_id = ?', (message.from_user.id,))
-    await message.reply_text("✅ Logout successful!")
+    await message.reply_text(
+        "✅ Logout successful!",
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
 
-# Myplan command - FIXED: Premium users stay premium
+# Myplan command - FIXED: Premium users stay premium WITH REPLY KEYBOARD
 @app.on_message(filters.command("myplan"))
 async def myplan_command(client, message: Message):
     user_id = message.from_user.id
@@ -594,7 +607,11 @@ async def myplan_command(client, message: Message):
 ⭐ Priority support
 
 💎 **You're enjoying the best learning experience!**"""
-        await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text(
+            plan_text, 
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
+        )
     else:
         plan_text = """🔒 **Free Plan**
 
@@ -609,12 +626,14 @@ async def myplan_command(client, message: Message):
 
 👉 Use `/premium_user` to upgrade now!"""
         
-        await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
+        await message.reply_text(
+            plan_text, 
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
+        )
         return
-    
-    await message.reply_text(plan_text, parse_mode=ParseMode.MARKDOWN)
 
-# NEW Block User command - FIXED: Proper blocking
+# NEW Block User command - FIXED: Proper blocking WITH REPLY KEYBOARD
 @app.on_message(filters.command("block_user"))
 async def block_user_command(client, message: Message):
     if await admin_warning(message):
@@ -654,7 +673,7 @@ async def block_user_command(client, message: Message):
             parse_mode=ParseMode.MARKDOWN
         )
 
-# NEW Unblock User command - FIXED: Proper unblocking
+# NEW Unblock User command - FIXED: Proper unblocking WITH REPLY KEYBOARD
 @app.on_message(filters.command("unblock_user"))
 async def unblock_user_command(client, message: Message):
     if await admin_warning(message):
@@ -698,7 +717,8 @@ We hope you have a better experience this time! ✨"""
                 await client.send_message(
                     user[0],
                     unblock_message,
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=get_main_keyboard()  # Added reply keyboard
                 )
             except:
                 await message.reply_text("ℹ️ Could not send unblock notification to user (they might have blocked the bot).")
@@ -713,8 +733,7 @@ We hope you have a better experience this time! ✨"""
             "• `/unblock_user @username`",
             parse_mode=ParseMode.MARKDOWN
         )
-
-# NEW Blocked User List command
+# NEW Blocked User List command WITH REPLY KEYBOARD
 @app.on_message(filters.command("blocked_user_list"))
 async def blocked_user_list_command(client, message: Message):
     if await admin_warning(message):
@@ -746,7 +765,7 @@ async def blocked_user_list_command(client, message: Message):
     
     await message.reply_text(blocked_text, parse_mode=ParseMode.MARKDOWN)
 
-# Get username command - FIXED: Blocking check
+# Get username command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("get_username"))
 async def username_command(client, message: Message):
     user_id = message.from_user.id
@@ -755,18 +774,25 @@ async def username_command(client, message: Message):
     
     user = message.from_user
     username = f"@{user.username}" if user.username else "Not set"
-    await message.reply_text(f"👤 **Your Username:** {username}")
+    await message.reply_text(
+        f"👤 **Your Username:** {username}",
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
 
-# Get ID command - FIXED: Blocking check
+# Get ID command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("get_id"))
 async def id_command(client, message: Message):
     user_id = message.from_user.id
     if await blocked_user_check(user_id, message=message):
         return
     
-    await message.reply_text(f"🆔 **Your User ID:** `{message.from_user.id}`", parse_mode=ParseMode.MARKDOWN)
+    await message.reply_text(
+        f"🆔 **Your User ID:** `{message.from_user.id}`", 
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
 
-# Speedtest command - FIXED: Blocking check
+# Speedtest command - FIXED: Blocking check WITH REPLY KEYBOARD
 @app.on_message(filters.command("speedtest"))
 async def speedtest_command(client, message: Message):
     user_id = message.from_user.id
@@ -778,7 +804,11 @@ async def speedtest_command(client, message: Message):
     end_time = time.time()
     response_time = round((end_time - start_time) * 1000, 2)
     
-    await msg.edit_text(f"📊 **Server Speed Test:**\n\n⏱ Response Time: {response_time}ms\n✅ Bot is running smoothly!")
+    await msg.edit_text(
+        f"📊 **Server Speed Test:**\n\n⏱ Response Time: {response_time}ms\n✅ Bot is running smoothly!",
+        reply_markup=get_main_keyboard()  # Added reply keyboard
+    )
+
 # ADVANCED Get File IDs command with complete file IDs and timestamps
 @app.on_message(filters.command("get_file_ids"))
 async def get_file_ids_command(client, message: Message):
@@ -829,8 +859,7 @@ async def get_file_ids_command(client, message: Message):
                 await message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
     else:
         await message.reply_text(files_text, parse_mode=ParseMode.MARKDOWN)
-
-# NEW Remove via File ID command
+# NEW Remove via File ID command WITH REPLY KEYBOARD
 @app.on_message(filters.command("remove_via_file_id"))
 async def remove_via_file_id_command(client, message: Message):
     if await admin_warning(message):
@@ -935,7 +964,8 @@ async def clear_subject_command(client, message: Message):
         "First, select the type of content you want to clear:",
         reply_markup=keyboard
     )
-# TRANSFER command - FIXED: Premium stays until removed
+
+# TRANSFER command - FIXED: Premium stays until removed WITH REPLY KEYBOARD
 @app.on_message(filters.command("transfer"))
 async def transfer_command(client, message: Message):
     user_id = message.from_user.id
@@ -952,7 +982,8 @@ async def transfer_command(client, message: Message):
         await message.reply_text(
             "❌ **You need to be a Premium User to transfer premium!**\n\n"
             "Upgrade to premium first using `/premium_user` command.",
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
         )
         return
     
@@ -1013,9 +1044,9 @@ async def transfer_command(client, message: Message):
             "• `/transfer 123456789`\n"
             "• `/transfer @username`\n\n"
             "⚠️ **Note:** After transfer, you will lose your premium access and the target user will get it.",
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
         )
-
 # Admin commands with protection
 @app.on_message(filters.command("add_user_premium"))
 async def add_premium_command(client, message: Message):
@@ -1182,7 +1213,7 @@ async def broadcast_command(client, message: Message):
         
         for user in users:
             try:
-                await client.send_message(user[0], f"📢 **Broadcast Message:**\n\n{broadcast_text}")
+                await client.send_message(user[0], f"📢 **Broadcast Message:**\n\n{broadcast_text}", reply_markup=get_main_keyboard())  # Added reply keyboard
                 success += 1
             except:
                 failed += 1
@@ -1191,6 +1222,7 @@ async def broadcast_command(client, message: Message):
         await broadcast_msg.edit_text(f"✅ Broadcast Complete!\n\n✅ Success: {success}\n❌ Failed: {failed}")
     else:
         await message.reply_text("Usage: /broadcast <message>")
+
 # IMPROVED File handling for admin - FIXED: Working properly
 @app.on_message(filters.user(ADMIN_ID) & (filters.video | filters.document | filters.audio | filters.photo))
 async def handle_files(client, message: Message):
@@ -1275,7 +1307,6 @@ async def handle_unauthorized_files(client, message: Message):
             f"Please contact the bot owner for assistance.",
             reply_markup=get_owner_button()
         )
-
 # Function to create subject keyboard with file counts - FIXED
 def create_subject_keyboard(file_id_short, category_prefix, content_type="free"):
     keyboard = []
@@ -1328,6 +1359,7 @@ def create_premium_content_keyboard(callback_prefix, content_type):
         keyboard.append(row)
     
     return InlineKeyboardMarkup(keyboard)
+
 # IMPROVED Callback query handler - FIXED: All callbacks working with blocked user check
 @app.on_callback_query()
 async def handle_callbacks(client, callback_query: CallbackQuery):
@@ -1348,7 +1380,8 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             "📧 Please send payment screenshot to @Sush11112222\n"
             "⚡ Your premium access will be activated within 30 minutes!\n\n"
             "📚 *Ab enjoy karein MBBS ki premium content!* 📚",
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
         )
         return
     
@@ -1363,7 +1396,8 @@ async def handle_callbacks(client, callback_query: CallbackQuery):
             "4. Send screenshot to @Sush11112222\n"
             "5. Get instant premium access!\n\n"
             "Need help? Contact @Sush11112222 immediately!",
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=get_main_keyboard()  # Added reply keyboard
         )
         return
 
